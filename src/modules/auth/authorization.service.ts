@@ -87,13 +87,12 @@ export class AuthorizationService {
     }
 
     /**
-     * Resolve a task's team, then assert `permission` on it. Use for flat /tasks/:id routes where the
-     * team isn't in the URL. Returns the access for the task's team.
+     * Resolve a task's team and the caller's access to it (throws NotFound/Forbidden). Use this once
+     * per request when several permissions must be checked (avoids re-querying per permission).
      */
-    async assertTaskPermission(
+    async getTaskAccess(
         userId: string,
         taskId: string,
-        permission: Permission,
         userRole?: UserRole,
     ): Promise<TeamAccess> {
         const taskResult = await this.databaseService.query<{ teamId: string }>(
@@ -103,6 +102,33 @@ export class AuthorizationService {
         const task = taskResult.rows[0];
         if (!task) throw new NotFoundException('Task not found');
 
-        return this.assertTeamPermission(userId, task.teamId, permission, userRole);
+        return this.getTeamAccess(userId, task.teamId, userRole);
+    }
+
+    /** True if the access grants `permission` (owner/app-admin have all). */
+    can(access: TeamAccess, permission: Permission): boolean {
+        return access.hasAll || access.permissions.includes(permission);
+    }
+
+    /** Assert `permission` against an already-resolved access, else 403. */
+    assertCan(access: TeamAccess, permission: Permission): void {
+        if (!this.can(access, permission)) {
+            throw new ForbiddenException(`Missing permission: ${permission}`);
+        }
+    }
+
+    /**
+     * Resolve a task's team, then assert `permission` on it. Use for flat /tasks/:id routes where the
+     * team isn't in the URL. Returns the access for the task's team.
+     */
+    async assertTaskPermission(
+        userId: string,
+        taskId: string,
+        permission: Permission,
+        userRole?: UserRole,
+    ): Promise<TeamAccess> {
+        const access = await this.getTaskAccess(userId, taskId, userRole);
+        this.assertCan(access, permission);
+        return access;
     }
 }

@@ -46,6 +46,12 @@ export class RedisService {
         }
     }
 
+    /** SET key val EX ttl NX — atomic acquire. Returns true only if the key was newly set (lock won). */
+    async setNxEx(key: string, value: string, ttlSeconds: number): Promise<boolean> {
+        const result = await this.client.set(key, value, 'EX', ttlSeconds, 'NX');
+        return result === 'OK';
+    }
+
     /** Cursor-based SCAN — non-blocking alternative to KEYS, which is O(N) and blocks the event loop. */
     async scanKeys(pattern: string, count = 200): Promise<string[]> {
         const found: string[] = [];
@@ -133,6 +139,11 @@ export class RedisService {
             console.error(`Redis HGETALL error for key ${hashKey}:`, error);
             return {};
         }
+    }
+
+    /** Atomically add `by` to a hash field and return the new value. Used for presence ref-counting. */
+    async hIncrBy(hashKey: string, field: string, by: number): Promise<number> {
+        return this.client.hincrby(hashKey, field, by);
     }
 
     // --- Z Commands ---

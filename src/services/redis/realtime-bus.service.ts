@@ -1,55 +1,94 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { Observable } from 'rxjs';
+import Redis from 'ioredis';
 import { RedisService } from './redis.service';
 
+type Listener = (message: any) => void;
+
 /**
- * Turns Redis pub/sub channels into RxJS Observables for NestJS @Sse() endpoints. Each subscriber
- * gets a dedicated Redis connection, released automatically on unsubscribe (e.g. SSE disconnect).
- * Channels are flat and globbable, e.g. `project:{id}:readiness`, `job:{id}:status`.
+ * Turns Redis pub/sub channels into RxJS Observables for NestJS @Sse() endpoints.
+ *
+ * Scale note: this uses ONE shared Redis subscriber connection per process and ref-counts channel
+ * subscriptions in-memory (channel -> set of local listeners). A naive "one Redis connection per SSE
+ * client" design dies at a few thousand clients (Redis maxclients ~10k); here Redis connections are
+ * O(instances), not O(connected users), so it scales to 100k+ SSE clients across a handful of nodes.
+ * The shared connection SUBSCRIBEs to a channel on its first local listener and UNSUBSCRIBEs on its
+ * last, so Redis only fans out channels this instance actually has listeners for.
  */
 @Injectable()
-export class RealtimeBus {
-    constructor(private readonly redisService: RedisService) {}
+export class RealtimeBus implements OnModuleDestroy {
+    private subscriber?: Redis;
+    private readonly listeners = new Map<string, Set<Listener>>();
 
-    /** Publish a JSON-serialisable payload to a channel. */
+    constructor(private readonly redisService: RedisService) { }
+
+    /** Publish a JSON-serialisable payload to a channel (uses the main client, not the subscriber). */
     async publish(channel: string, payload: any): Promise<void> {
         await this.redisService.publish(channel, payload);
     }
 
+    private ensureSubscriber(): Redis {
+        if (this.subscriber) return this.subscriber;
+
+        // ioredis: once a connection runs SUBSCRIBE it's in subscriber mode, so this is dedicated.
+        const sub = this.redisService.duplicate();
+        sub.on('message', (channel: string, message: string) => {
+            const set = this.listeners.get(channel);
+            if (!set || set.size === 0) return;
+
+            let parsed: any = message;
+            try {
+                parsed = JSON.parse(message);
+            } catch {
+                /* keep as raw string */
+            }
+            for (const listener of set) listener(parsed);
+        });
+
+        this.subscriber = sub;
+        return sub;
+    }
+
     /**
-     * Subscribe to one or more channels on a dedicated connection (closed on unsubscribe).
-     * Messages are JSON-parsed when possible, else returned as raw strings.
+     * Subscribe to one or more channels. Messages are JSON-parsed when possible, else raw strings.
+     * Returns a cold Observable; the actual Redis SUBSCRIBE is shared across all callers of a channel.
      */
     subscribe<T = any>(channel: string | string[]): Observable<T> {
         const channels = Array.isArray(channel) ? channel : [channel];
 
         return new Observable<T>((subscriber) => {
-            const sub = this.redisService.duplicate();
-            let closed = false;
+            const sub = this.ensureSubscriber();
+            const listener: Listener = (message) => subscriber.next(message as T);
 
-            const handler = (incomingChannel: string, message: string) => {
-                if (!channels.includes(incomingChannel)) return;
-                let parsed: any = message;
-                try {
-                    parsed = JSON.parse(message);
-                } catch {
-                    /* keep as raw string */
+            for (const ch of channels) {
+                let set = this.listeners.get(ch);
+                if (!set) {
+                    set = new Set<Listener>();
+                    this.listeners.set(ch, set);
+                    // First local listener for this channel — subscribe on the shared connection.
+                    sub.subscribe(ch).catch((error) => subscriber.error(error));
                 }
-                if (!closed) subscriber.next(parsed as T);
-            };
-
-            sub.on('message', handler);
-            sub.subscribe(...channels).catch((error) => {
-                if (!closed) subscriber.error(error);
-            });
+                set.add(listener);
+            }
 
             return () => {
-                closed = true;
-                sub.off('message', handler);
-                sub.quit().catch(() => {
-                    /* connection closing — nothing to do */
-                });
+                for (const ch of channels) {
+                    const set = this.listeners.get(ch);
+                    if (!set) continue;
+                    set.delete(listener);
+                    if (set.size === 0) {
+                        this.listeners.delete(ch);
+                        // Last local listener gone — stop receiving this channel from Redis.
+                        sub.unsubscribe(ch).catch(() => { /* shutting down */ });
+                    }
+                }
             };
         });
+    }
+
+    async onModuleDestroy(): Promise<void> {
+        if (this.subscriber) {
+            await this.subscriber.quit().catch(() => { /* nothing to do */ });
+        }
     }
 }

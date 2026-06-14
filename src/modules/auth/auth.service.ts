@@ -20,7 +20,7 @@ import { JwtService } from '@nestjs/jwt';
 import { UserRole } from 'src/database/enums';
 import { REDIS_USER_TOKEN_CACHE_PREFIX, USER_TOKEN_CACHE_TTL } from 'src/config/constants';
 import { DatabaseService } from 'src/services/database/database.service';
-import { LoggerService } from 'src/services/logger/logger.service';
+import { EmailQueue } from 'src/services/queue/email.queue';
 import { toCamelCaseDeep } from 'src/services/common/case-conversion.util';
 
 // The system role every new user gets in their own default team (see migration 004 seed).
@@ -35,13 +35,13 @@ type AuthenticatedUser = {
 
 @Injectable()
 export class AuthService {
-    private readonly logger = new LoggerService(AuthService.name);
 
     constructor(
         private readonly databaseService: DatabaseService,
         private readonly configService: ConfigService,
         private readonly jwtService: JwtService,
         private readonly redisService: RedisService,
+        private readonly emailQueue: EmailQueue,
     ) { }
 
     // --- Helper Functions ---
@@ -162,11 +162,26 @@ export class AuthService {
     }
 
     /**
-     * Deliver the OTP to the user. No email provider is wired up yet, so for now we log it
-     * (in development the OTP is always '000000'). Swap this for Resend/SES later.
+     * Queue the OTP email. In development the OTP is always '000000', and if RESEND_API_KEY is unset
+     * the email worker logs instead of sending — so local signup/login works without a provider.
      */
     private async deliverOtp(email: string, otpString: string, firstName?: string): Promise<void> {
-        this.logger.log(`OTP for ${email}${firstName ? ` (${firstName})` : ''}: ${otpString}`);
+        await this.emailQueue.enqueue({
+            to: email,
+            subject: 'Your verification code',
+            template: 'otp',
+            data: { otpCode: otpString, firstName, expiresInMinutes: 5 },
+        });
+    }
+
+    /** Queue a welcome email after a user verifies. */
+    private async deliverWelcome(email: string, firstName?: string): Promise<void> {
+        await this.emailQueue.enqueue({
+            to: email,
+            subject: 'Welcome aboard',
+            template: 'welcome',
+            data: { firstName },
+        });
     }
 
     // --- Services ---
@@ -360,6 +375,8 @@ export class AuthService {
 
         await this.sendToken(res, 'ACCESS_TOKEN', accessToken);
         await this.sendToken(res, 'REFRESH_TOKEN', clientRefreshToken);
+
+        await this.deliverWelcome(updatedUser.email, updatedUser.firstName);
 
         const { password: _pw, oneTimePassword: _otp, oneTimeExpire: _otpExp, ...safeUser } = updatedUser as any;
 

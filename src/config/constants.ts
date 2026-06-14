@@ -7,3 +7,5 @@ export const USER_TOKEN_CACHE_TTL = 600; // seconds
 
 // Queue
 export const EMAIL_QUEUE = "EMAIL_QUEUE";
+// Serialized task mutation pipeline (event-sourced write path).
+export const TASK_COMMAND_QUEUE = "TASK_COMMAND_QUEUE";

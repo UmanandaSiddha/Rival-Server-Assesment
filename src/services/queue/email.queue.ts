@@ -19,6 +19,10 @@ export class EmailQueue {
     async enqueue(job: EmailJobPayload) {
         return this.queue.add('send_email', job, {
             priority: 4,
+            attempts: 3,
+            backoff: { type: 'exponential', delay: 5000 },
+            removeOnComplete: true,
+            removeOnFail: 50,
         });
     }
 }
