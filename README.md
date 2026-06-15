@@ -22,6 +22,7 @@ This is a REST + SSE API (NestJS, PostgreSQL, Redis, BullMQ). The web client (Ne
 - [Environment variables](#environment-variables)
 - [API reference](#api-reference)
 - [Testing](#testing)
+- [Deployment (Docker & CI/CD)](#deployment-docker--cicd)
 - [Assumptions & trade-offs](#assumptions--trade-offs)
 - [Diagram image prompts](#diagram-image-prompts)
 
@@ -388,6 +389,8 @@ All routes are under `/api/v1`. Auth is via httpOnly cookies.
 
 **Admin** (requires `ADMIN`) — `GET /admin/users`, `GET /admin/teams`, `GET /admin/tasks`, `PATCH /admin/users/:id/role`, `PATCH /admin/users/:id/disable`
 
+**Health** — `GET /health` (public liveness probe → `{ "status": "ok" }`)
+
 ---
 
 ## Testing
@@ -401,6 +404,42 @@ Unit tests cover the security-critical and tricky logic with mocked dependencies
 - `authorization.service.spec.ts` — RBAC: owner/admin bypass, member permissions, not-a-member and missing-team errors, permission assertions.
 - `edit-lock.service.spec.ts` — the concurrency lock: acquire, re-entrant refresh, blocked-by-another, release rules.
 - `case-conversion.util.spec.ts` — the row→API mapper (nested objects, arrays, Dates untouched).
+
+---
+
+## Deployment (Docker & CI/CD)
+
+### One-command local stack
+
+For a self-contained local run — API + Postgres + Redis, no external services — use the dev compose:
+
+```bash
+docker compose -f docker-compose.dev.yml up --build
+```
+
+It builds the API from the local `Dockerfile`, starts bundled Postgres + Redis, runs migrations on
+boot, and serves at `http://localhost:4000/api/v1` (health: `/api/v1/health`). It runs in
+`development` mode, so OTP is always `000000` and emails are logged to the container console instead of
+sent. Postgres/Redis aren't published to the host, so they won't clash with anything on 5432/6379.
+
+### Production
+
+`docker-compose.yml` is **production-oriented** — the app runs as one container that joins an existing
+`shared-network` where Postgres, Redis, and a reverse proxy already live (the VPS pattern). It pulls a
+prebuilt image rather than building locally.
+
+- **Dockerfile** — multi-stage, runs as the non-root `node` user, prod deps only, with a `/health`
+  container healthcheck. `docker-entrypoint.sh` waits for the DB, runs `dbmate up`, then starts the app.
+- **`.env.prod`** — template of the production env (container hostnames `postgres`/`redis`, https URLs,
+  fresh secrets). Copy to `.env` on the server.
+- **CI/CD** (`.github/workflows/ci.yml`) — on push: **test** (lint + jest + build) → **publish**
+  (build & push the image to GHCR) → **deploy** (SSH to the VPS, `docker compose pull && up -d`).
+  PRs run the test job only.
+
+```bash
+# on the VPS (one-time): docker-compose.yml + .env present, BACKEND_IMAGE set, logged into GHCR
+docker compose pull && docker compose up -d
+```
 
 ---
 
