@@ -4,7 +4,9 @@
  */
 
 function toCamelCase(key: string): string {
-    return key.replace(/[_-]+([a-z0-9])/gi, (_match, char: string) => char.toUpperCase());
+    return key.replace(/[_-]+([a-z0-9])/gi, (_match, char: string) =>
+        char.toUpperCase(),
+    );
 }
 
 export function toCamelCaseDeep<T = any>(input: any): T {
@@ -20,7 +22,10 @@ export function toCamelCaseDeep<T = any>(input: any): T {
 
     if (isPlainObject) {
         return Object.fromEntries(
-            Object.entries(input).map(([key, value]) => [toCamelCase(key), toCamelCaseDeep(value)]),
+            Object.entries(input).map(([key, value]) => [
+                toCamelCase(key),
+                toCamelCaseDeep(value),
+            ]),
         ) as T;
     }
 

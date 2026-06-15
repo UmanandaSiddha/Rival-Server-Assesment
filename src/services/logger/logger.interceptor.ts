@@ -10,7 +10,7 @@ import { LoggerService } from './logger.service';
 
 @Injectable()
 export class LoggingInterceptor implements NestInterceptor {
-    constructor(private readonly logger: LoggerService) { }
+    constructor(private readonly logger: LoggerService) {}
 
     intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
         const request = context.switchToHttp().getRequest();
@@ -20,18 +20,16 @@ export class LoggingInterceptor implements NestInterceptor {
         this.logger.log(`--> ${method} ${originalUrl}`, 'HTTP');
 
         const now = Date.now();
-        return next
-            .handle()
-            .pipe(
-                tap(() => {
-                    const { statusCode } = response;
-                    const elapsedTime = Date.now() - now;
+        return next.handle().pipe(
+            tap(() => {
+                const { statusCode } = response;
+                const elapsedTime = Date.now() - now;
 
-                    this.logger.log(
-                        `<-- ${method} ${originalUrl} ${statusCode} - ${elapsedTime}ms`,
-                        'HTTP',
-                    );
-                }),
-            );
+                this.logger.log(
+                    `<-- ${method} ${originalUrl} ${statusCode} - ${elapsedTime}ms`,
+                    'HTTP',
+                );
+            }),
+        );
     }
 }

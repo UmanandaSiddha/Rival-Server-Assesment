@@ -18,7 +18,7 @@ export class RealtimeBus implements OnModuleDestroy {
     private subscriber?: Redis;
     private readonly listeners = new Map<string, Set<Listener>>();
 
-    constructor(private readonly redisService: RedisService) { }
+    constructor(private readonly redisService: RedisService) {}
 
     /** Publish a JSON-serialisable payload to a channel (uses the main client, not the subscriber). */
     async publish(channel: string, payload: any): Promise<void> {
@@ -56,7 +56,8 @@ export class RealtimeBus implements OnModuleDestroy {
 
         return new Observable<T>((subscriber) => {
             const sub = this.ensureSubscriber();
-            const listener: Listener = (message) => subscriber.next(message as T);
+            const listener: Listener = (message) =>
+                subscriber.next(message as T);
 
             for (const ch of channels) {
                 let set = this.listeners.get(ch);
@@ -77,7 +78,9 @@ export class RealtimeBus implements OnModuleDestroy {
                     if (set.size === 0) {
                         this.listeners.delete(ch);
                         // Last local listener gone — stop receiving this channel from Redis.
-                        sub.unsubscribe(ch).catch(() => { /* shutting down */ });
+                        sub.unsubscribe(ch).catch(() => {
+                            /* shutting down */
+                        });
                     }
                 }
             };
@@ -86,7 +89,9 @@ export class RealtimeBus implements OnModuleDestroy {
 
     async onModuleDestroy(): Promise<void> {
         if (this.subscriber) {
-            await this.subscriber.quit().catch(() => { /* nothing to do */ });
+            await this.subscriber.quit().catch(() => {
+                /* nothing to do */
+            });
         }
     }
 }

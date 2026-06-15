@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+    BadRequestException,
+    Injectable,
+    NotFoundException,
+} from '@nestjs/common';
 import { DatabaseService } from 'src/services/database/database.service';
 import { toCamelCaseDeep } from 'src/services/common/case-conversion.util';
 import { Permission, UserRole } from 'src/database/enums';
@@ -22,7 +26,7 @@ export class TeamService {
         private readonly databaseService: DatabaseService,
         private readonly authorizationService: AuthorizationService,
         private readonly publisher: RealtimePublisher,
-    ) { }
+    ) {}
 
     // --- Teams ---
 
@@ -58,13 +62,32 @@ export class TeamService {
     }
 
     async getOne(user: RequestUser, teamId: string) {
-        const access = await this.authorizationService.assertTeamMembership(user.id, teamId, user.role);
-        const result = await this.databaseService.query(`SELECT * FROM "Team" WHERE "id" = $1 LIMIT 1`, [teamId]);
-        return { ...toCamelCaseDeep(result.rows[0]), access: { isOwner: access.isOwner, hasAll: access.hasAll, permissions: access.permissions } };
+        const access = await this.authorizationService.assertTeamMembership(
+            user.id,
+            teamId,
+            user.role,
+        );
+        const result = await this.databaseService.query(
+            `SELECT * FROM "Team" WHERE "id" = $1 LIMIT 1`,
+            [teamId],
+        );
+        return {
+            ...toCamelCaseDeep(result.rows[0]),
+            access: {
+                isOwner: access.isOwner,
+                hasAll: access.hasAll,
+                permissions: access.permissions,
+            },
+        };
     }
 
     async update(user: RequestUser, teamId: string, dto: UpdateTeamDto) {
-        await this.authorizationService.assertTeamPermission(user.id, teamId, Permission.TEAM_UPDATE, user.role);
+        await this.authorizationService.assertTeamPermission(
+            user.id,
+            teamId,
+            Permission.TEAM_UPDATE,
+            user.role,
+        );
         const result = await this.databaseService.query(
             `UPDATE "Team" SET "name" = $1, "updated_at" = now() WHERE "id" = $2 RETURNING *`,
             [dto.name, teamId],
@@ -73,21 +96,36 @@ export class TeamService {
     }
 
     async remove(user: RequestUser, teamId: string) {
-        await this.authorizationService.assertTeamPermission(user.id, teamId, Permission.TEAM_DELETE, user.role);
+        await this.authorizationService.assertTeamPermission(
+            user.id,
+            teamId,
+            Permission.TEAM_DELETE,
+            user.role,
+        );
 
-        const teamResult = await this.databaseService.query(`SELECT "isDefault" FROM "Team" WHERE "id" = $1 LIMIT 1`, [teamId]);
+        const teamResult = await this.databaseService.query(
+            `SELECT "isDefault" FROM "Team" WHERE "id" = $1 LIMIT 1`,
+            [teamId],
+        );
         const team = teamResult.rows[0];
         if (!team) throw new NotFoundException('Team not found');
-        if (team.isDefault) throw new BadRequestException('Cannot delete your default team');
+        if (team.isDefault)
+            throw new BadRequestException('Cannot delete your default team');
 
-        await this.databaseService.query(`DELETE FROM "Team" WHERE "id" = $1`, [teamId]);
+        await this.databaseService.query(`DELETE FROM "Team" WHERE "id" = $1`, [
+            teamId,
+        ]);
         return { id: teamId };
     }
 
     // --- Members ---
 
     async listMembers(user: RequestUser, teamId: string) {
-        await this.authorizationService.assertTeamMembership(user.id, teamId, user.role);
+        await this.authorizationService.assertTeamMembership(
+            user.id,
+            teamId,
+            user.role,
+        );
         const result = await this.databaseService.query(
             `
                 SELECT
@@ -107,13 +145,25 @@ export class TeamService {
         return toCamelCaseDeep(result.rows);
     }
 
-    async updateMemberRole(user: RequestUser, teamId: string, targetUserId: string, roleId: string) {
-        await this.authorizationService.assertTeamPermission(user.id, teamId, Permission.MEMBER_UPDATE_ROLE, user.role);
+    async updateMemberRole(
+        user: RequestUser,
+        teamId: string,
+        targetUserId: string,
+        roleId: string,
+    ) {
+        await this.authorizationService.assertTeamPermission(
+            user.id,
+            teamId,
+            Permission.MEMBER_UPDATE_ROLE,
+            user.role,
+        );
         await this.assertRoleUsable(teamId, roleId);
 
         const owner = await this.getOwnerId(teamId);
         if (owner === targetUserId) {
-            throw new BadRequestException("The team owner's role cannot be changed");
+            throw new BadRequestException(
+                "The team owner's role cannot be changed",
+            );
         }
 
         const result = await this.databaseService.query(
@@ -122,12 +172,26 @@ export class TeamService {
         );
         if (!result.rows[0]) throw new NotFoundException('Member not found');
 
-        await this.publisher.emitToTeam(teamId, 'member.role_changed', { userId: targetUserId, roleId }, user.id);
+        await this.publisher.emitToTeam(
+            teamId,
+            'member.role_changed',
+            { userId: targetUserId, roleId },
+            user.id,
+        );
         return toCamelCaseDeep(result.rows[0]);
     }
 
-    async removeMember(user: RequestUser, teamId: string, targetUserId: string) {
-        await this.authorizationService.assertTeamPermission(user.id, teamId, Permission.MEMBER_REMOVE, user.role);
+    async removeMember(
+        user: RequestUser,
+        teamId: string,
+        targetUserId: string,
+    ) {
+        await this.authorizationService.assertTeamPermission(
+            user.id,
+            teamId,
+            Permission.MEMBER_REMOVE,
+            user.role,
+        );
 
         const owner = await this.getOwnerId(teamId);
         if (owner === targetUserId) {
@@ -140,14 +204,23 @@ export class TeamService {
         );
         if (!result.rows[0]) throw new NotFoundException('Member not found');
 
-        await this.publisher.emitToTeam(teamId, 'member.removed', { userId: targetUserId }, user.id);
+        await this.publisher.emitToTeam(
+            teamId,
+            'member.removed',
+            { userId: targetUserId },
+            user.id,
+        );
         return { ok: true };
     }
 
     // --- Roles ---
 
     async listRoles(user: RequestUser, teamId: string) {
-        await this.authorizationService.assertTeamMembership(user.id, teamId, user.role);
+        await this.authorizationService.assertTeamMembership(
+            user.id,
+            teamId,
+            user.role,
+        );
         const result = await this.databaseService.query(
             `
                 SELECT "id", "teamId", "name", "description", "isSystem", "permissions"::text[] AS "permissions"
@@ -161,7 +234,12 @@ export class TeamService {
     }
 
     async createRole(user: RequestUser, teamId: string, dto: CreateRoleDto) {
-        await this.authorizationService.assertTeamPermission(user.id, teamId, Permission.ROLE_CREATE, user.role);
+        await this.authorizationService.assertTeamPermission(
+            user.id,
+            teamId,
+            Permission.ROLE_CREATE,
+            user.role,
+        );
         const result = await this.databaseService.query(
             `
                 INSERT INTO "Role" ("teamId", "name", "description", "isSystem", "permissions")
@@ -173,8 +251,18 @@ export class TeamService {
         return toCamelCaseDeep(result.rows[0]);
     }
 
-    async updateRole(user: RequestUser, teamId: string, roleId: string, dto: UpdateRoleDto) {
-        await this.authorizationService.assertTeamPermission(user.id, teamId, Permission.ROLE_UPDATE, user.role);
+    async updateRole(
+        user: RequestUser,
+        teamId: string,
+        roleId: string,
+        dto: UpdateRoleDto,
+    ) {
+        await this.authorizationService.assertTeamPermission(
+            user.id,
+            teamId,
+            Permission.ROLE_UPDATE,
+            user.role,
+        );
         const result = await this.databaseService.query(
             `
                 UPDATE "Role"
@@ -186,20 +274,33 @@ export class TeamService {
                 WHERE "id" = $4 AND "teamId" = $5 AND "isSystem" = false
                 RETURNING "id", "teamId", "name", "description", "isSystem", "permissions"::text[] AS "permissions"
             `,
-            [dto.name ?? null, dto.description ?? null, dto.permissions ?? null, roleId, teamId],
+            [
+                dto.name ?? null,
+                dto.description ?? null,
+                dto.permissions ?? null,
+                roleId,
+                teamId,
+            ],
         );
-        if (!result.rows[0]) throw new NotFoundException('Custom role not found for this team');
+        if (!result.rows[0])
+            throw new NotFoundException('Custom role not found for this team');
         return toCamelCaseDeep(result.rows[0]);
     }
 
     async deleteRole(user: RequestUser, teamId: string, roleId: string) {
-        await this.authorizationService.assertTeamPermission(user.id, teamId, Permission.ROLE_DELETE, user.role);
+        await this.authorizationService.assertTeamPermission(
+            user.id,
+            teamId,
+            Permission.ROLE_DELETE,
+            user.role,
+        );
         // FK RESTRICT from TeamMember/Invite blocks deletion of a role still in use (-> 409).
         const result = await this.databaseService.query(
             `DELETE FROM "Role" WHERE "id" = $1 AND "teamId" = $2 AND "isSystem" = false RETURNING "id"`,
             [roleId, teamId],
         );
-        if (!result.rows[0]) throw new NotFoundException('Custom role not found for this team');
+        if (!result.rows[0])
+            throw new NotFoundException('Custom role not found for this team');
         return { id: roleId };
     }
 
@@ -211,7 +312,8 @@ export class TeamService {
             `SELECT 1 FROM "Role" WHERE "id" = $1 AND ("teamId" = $2 OR "teamId" IS NULL) LIMIT 1`,
             [roleId, teamId],
         );
-        if (!result.rows[0]) throw new BadRequestException('Invalid role for this team');
+        if (!result.rows[0])
+            throw new BadRequestException('Invalid role for this team');
     }
 
     private async getOwnerId(teamId: string): Promise<string> {

@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+    BadRequestException,
+    Injectable,
+    NotFoundException,
+} from '@nestjs/common';
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import * as crypto from 'crypto';
@@ -31,10 +35,14 @@ export class AttachmentService {
         private readonly databaseService: DatabaseService,
         private readonly authorizationService: AuthorizationService,
         private readonly publisher: RealtimePublisher,
-    ) { }
+    ) {}
 
     async list(user: RequestUser, taskId: string) {
-        const access = await this.authorizationService.getTaskAccess(user.id, taskId, user.role);
+        const access = await this.authorizationService.getTaskAccess(
+            user.id,
+            taskId,
+            user.role,
+        );
         this.authorizationService.assertCan(access, Permission.TASK_READ);
 
         const result = await this.databaseService.query(
@@ -48,10 +56,16 @@ export class AttachmentService {
         if (!file) throw new BadRequestException('No file uploaded');
 
         // Authorize BEFORE writing to disk so an unauthorized request never creates a file.
-        const access = await this.authorizationService.getTaskAccess(user.id, taskId, user.role);
+        const access = await this.authorizationService.getTaskAccess(
+            user.id,
+            taskId,
+            user.role,
+        );
         this.authorizationService.assertCan(access, Permission.TASK_UPDATE);
 
-        const safeName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_').slice(-100) || 'file';
+        const safeName =
+            file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_').slice(-100) ||
+            'file';
         const storedName = `${crypto.randomBytes(8).toString('hex')}-${safeName}`;
         const dir = join(UPLOAD_ROOT, 'tasks', taskId);
         await fs.mkdir(dir, { recursive: true });
@@ -81,12 +95,21 @@ export class AttachmentService {
         );
 
         const attachment = toCamelCaseDeep(result.rows[0]);
-        await this.publisher.emitToTeam(access.teamId, 'task.attachment_added', { taskId, attachment }, user.id);
+        await this.publisher.emitToTeam(
+            access.teamId,
+            'task.attachment_added',
+            { taskId, attachment },
+            user.id,
+        );
         return attachment;
     }
 
     async addLink(user: RequestUser, taskId: string, dto: AddLinkDto) {
-        const access = await this.authorizationService.getTaskAccess(user.id, taskId, user.role);
+        const access = await this.authorizationService.getTaskAccess(
+            user.id,
+            taskId,
+            user.role,
+        );
         this.authorizationService.assertCan(access, Permission.TASK_UPDATE);
 
         const preview = await this.fetchLinkPreview(dto.url);
@@ -111,12 +134,21 @@ export class AttachmentService {
         );
 
         const attachment = toCamelCaseDeep(result.rows[0]);
-        await this.publisher.emitToTeam(access.teamId, 'task.attachment_added', { taskId, attachment }, user.id);
+        await this.publisher.emitToTeam(
+            access.teamId,
+            'task.attachment_added',
+            { taskId, attachment },
+            user.id,
+        );
         return attachment;
     }
 
     async remove(user: RequestUser, taskId: string, attachmentId: string) {
-        const access = await this.authorizationService.getTaskAccess(user.id, taskId, user.role);
+        const access = await this.authorizationService.getTaskAccess(
+            user.id,
+            taskId,
+            user.role,
+        );
         this.authorizationService.assertCan(access, Permission.TASK_UPDATE);
 
         const found = await this.databaseService.query(
@@ -126,23 +158,38 @@ export class AttachmentService {
         const row = found.rows[0];
         if (!row) throw new NotFoundException('Attachment not found');
 
-        await this.databaseService.query(`DELETE FROM "TaskAttachment" WHERE "id" = $1`, [attachmentId]);
+        await this.databaseService.query(
+            `DELETE FROM "TaskAttachment" WHERE "id" = $1`,
+            [attachmentId],
+        );
 
         // Best-effort: remove the file from disk for local uploads.
-        if (row.type === AttachmentType.FILE && row.storageProvider === 'local' && typeof row.url === 'string') {
+        if (
+            row.type === AttachmentType.FILE &&
+            row.storageProvider === 'local' &&
+            typeof row.url === 'string'
+        ) {
             const relative = row.url.replace(/^\/uploads\//, '');
             await fs.unlink(join(UPLOAD_ROOT, relative)).catch(() => undefined);
         }
 
-        await this.publisher.emitToTeam(access.teamId, 'task.attachment_removed', { taskId, attachmentId }, user.id);
+        await this.publisher.emitToTeam(
+            access.teamId,
+            'task.attachment_removed',
+            { taskId, attachmentId },
+            user.id,
+        );
         return { ok: true };
     }
 
     // --- Link preview (best-effort OpenGraph scrape; never throws) ---
 
-    private async fetchLinkPreview(
-        url: string,
-    ): Promise<{ title?: string; description?: string; siteName?: string; image?: string }> {
+    private async fetchLinkPreview(url: string): Promise<{
+        title?: string;
+        description?: string;
+        siteName?: string;
+        image?: string;
+    }> {
         try {
             const response = await fetch(url, {
                 signal: AbortSignal.timeout(3000),
@@ -151,9 +198,13 @@ export class AttachmentService {
             const contentType = response.headers.get('content-type') ?? '';
             if (!response.ok || !contentType.includes('text/html')) return {};
 
-            const html = (await response.text()).slice(0, MAX_LINK_PREVIEW_BYTES);
+            const html = (await response.text()).slice(
+                0,
+                MAX_LINK_PREVIEW_BYTES,
+            );
             return {
-                title: this.metaContent(html, 'og:title') ?? this.titleTag(html),
+                title:
+                    this.metaContent(html, 'og:title') ?? this.titleTag(html),
                 description: this.metaContent(html, 'og:description'),
                 siteName: this.metaContent(html, 'og:site_name'),
                 image: this.metaContent(html, 'og:image'),

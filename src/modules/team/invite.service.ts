@@ -34,10 +34,15 @@ export class InviteService {
         private readonly teamService: TeamService,
         private readonly emailQueue: EmailQueue,
         private readonly publisher: RealtimePublisher,
-    ) { }
+    ) {}
 
     async create(user: RequestUser, teamId: string, dto: CreateInviteDto) {
-        await this.authorizationService.assertTeamPermission(user.id, teamId, Permission.MEMBER_INVITE, user.role);
+        await this.authorizationService.assertTeamPermission(
+            user.id,
+            teamId,
+            Permission.MEMBER_INVITE,
+            user.role,
+        );
         await this.teamService.assertRoleUsable(teamId, dto.roleId);
 
         const email = dto.email.toLowerCase();
@@ -53,7 +58,9 @@ export class InviteService {
             [teamId, email],
         );
         if (existingMember.rows[0]) {
-            throw new BadRequestException('That user is already a member of this team');
+            throw new BadRequestException(
+                'That user is already a member of this team',
+            );
         }
 
         const token = crypto.randomBytes(32).toString('hex');
@@ -70,7 +77,10 @@ export class InviteService {
         );
         const invite = toCamelCaseDeep(result.rows[0]);
 
-        const teamResult = await this.databaseService.query(`SELECT "name" FROM "Team" WHERE "id" = $1`, [teamId]);
+        const teamResult = await this.databaseService.query(
+            `SELECT "name" FROM "Team" WHERE "id" = $1`,
+            [teamId],
+        );
         const teamName = teamResult.rows[0]?.name ?? 'a team';
         const inviteUrl = `${this.configService.get<string>('FRONTEND_URL') ?? ''}/invite/${token}`;
 
@@ -80,7 +90,9 @@ export class InviteService {
             template: 'invite',
             data: {
                 teamName,
-                invitedByName: [user.firstName, user.lastName].filter(Boolean).join(' ') || undefined,
+                invitedByName:
+                    [user.firstName, user.lastName].filter(Boolean).join(' ') ||
+                    undefined,
                 inviteUrl,
                 expiresAt: expiresAt.toDateString(),
             },
@@ -90,7 +102,12 @@ export class InviteService {
     }
 
     async list(user: RequestUser, teamId: string) {
-        await this.authorizationService.assertTeamPermission(user.id, teamId, Permission.MEMBER_INVITE, user.role);
+        await this.authorizationService.assertTeamPermission(
+            user.id,
+            teamId,
+            Permission.MEMBER_INVITE,
+            user.role,
+        );
         const result = await this.databaseService.query(
             `
                 SELECT i."id", i."email", i."roleId", i."status", i."expiresAt", i."created_at",
@@ -106,7 +123,12 @@ export class InviteService {
     }
 
     async revoke(user: RequestUser, teamId: string, inviteId: string) {
-        await this.authorizationService.assertTeamPermission(user.id, teamId, Permission.MEMBER_INVITE, user.role);
+        await this.authorizationService.assertTeamPermission(
+            user.id,
+            teamId,
+            Permission.MEMBER_INVITE,
+            user.role,
+        );
         const result = await this.databaseService.query(
             `
                 UPDATE "Invite" SET "status" = 'REVOKED', "updated_at" = now()
@@ -115,7 +137,8 @@ export class InviteService {
             `,
             [inviteId, teamId],
         );
-        if (!result.rows[0]) throw new NotFoundException('Pending invite not found');
+        if (!result.rows[0])
+            throw new NotFoundException('Pending invite not found');
         return { ok: true };
     }
 
@@ -142,28 +165,33 @@ export class InviteService {
     async accept(user: RequestUser, token: string) {
         const invite = await this.loadActionableInvite(token, user);
 
-        const result = await this.databaseService.withTransaction(async (client) => {
-            await client.query(
-                `
+        const result = await this.databaseService.withTransaction(
+            async (client) => {
+                await client.query(
+                    `
                     INSERT INTO "TeamMember" ("teamId", "userId", "roleId")
                     VALUES ($1, $2, $3)
                     ON CONFLICT ("teamId", "userId") DO NOTHING
                 `,
-                [invite.teamId, user.id, invite.roleId],
-            );
+                    [invite.teamId, user.id, invite.roleId],
+                );
 
-            await client.query(
-                `
+                await client.query(
+                    `
                     UPDATE "Invite"
                     SET "status" = 'ACCEPTED', "acceptedById" = $1, "acceptedAt" = now(), "updated_at" = now()
                     WHERE "id" = $2
                 `,
-                [user.id, invite.id],
-            );
+                    [user.id, invite.id],
+                );
 
-            const teamResult = await client.query(`SELECT * FROM "Team" WHERE "id" = $1`, [invite.teamId]);
-            return toCamelCaseDeep(teamResult.rows[0]);
-        });
+                const teamResult = await client.query(
+                    `SELECT * FROM "Team" WHERE "id" = $1`,
+                    [invite.teamId],
+                );
+                return toCamelCaseDeep(teamResult.rows[0]);
+            },
+        );
 
         await this.publisher.emitToTeam(
             invite.teamId,
@@ -171,7 +199,12 @@ export class InviteService {
             {
                 userId: user.id,
                 roleId: invite.roleId,
-                user: { id: user.id, firstName: user.firstName, lastName: user.lastName, email: user.email },
+                user: {
+                    id: user.id,
+                    firstName: user.firstName,
+                    lastName: user.lastName,
+                    email: user.email,
+                },
             },
             user.id,
         );
@@ -195,7 +228,8 @@ export class InviteService {
             [token],
         );
         const invite = result.rows[0] ? toCamelCaseDeep(result.rows[0]) : null;
-        if (!invite) throw new NotFoundException('Invite not found or already used');
+        if (!invite)
+            throw new NotFoundException('Invite not found or already used');
 
         if (new Date(invite.expiresAt) <= new Date()) {
             await this.databaseService.query(
@@ -205,8 +239,13 @@ export class InviteService {
             throw new BadRequestException('Invite has expired');
         }
 
-        if (!user.email || user.email.toLowerCase() !== String(invite.email).toLowerCase()) {
-            throw new ForbiddenException('This invite was sent to a different email address');
+        if (
+            !user.email ||
+            user.email.toLowerCase() !== String(invite.email).toLowerCase()
+        ) {
+            throw new ForbiddenException(
+                'This invite was sent to a different email address',
+            );
         }
 
         return invite;

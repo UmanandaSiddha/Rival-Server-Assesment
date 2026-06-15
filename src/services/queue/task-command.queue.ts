@@ -3,7 +3,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { ConfigService } from '@nestjs/config';
 import { Queue, QueueEvents } from 'bullmq';
 import { TASK_COMMAND_QUEUE } from 'src/config/constants';
-import { buildBullConnection } from 'src/services/queue/bull-connection';
+import { buildBullConnection } from './bull-connection';
 import { TaskCommand } from './task.commands';
 
 // Cap how long a write waits for its command to be processed before erroring out.
@@ -20,7 +20,7 @@ export class TaskCommandQueue implements OnModuleInit, OnModuleDestroy {
     constructor(
         @InjectQueue(TASK_COMMAND_QUEUE) private readonly queue: Queue,
         private readonly configService: ConfigService,
-    ) { }
+    ) {}
 
     async onModuleInit(): Promise<void> {
         this.queueEvents = new QueueEvents(TASK_COMMAND_QUEUE, {
@@ -40,6 +40,9 @@ export class TaskCommandQueue implements OnModuleInit, OnModuleDestroy {
             removeOnComplete: true,
             removeOnFail: 100,
         });
-        return job.waitUntilFinished(this.queueEvents, COMMAND_TIMEOUT_MS) as Promise<T>;
+        return job.waitUntilFinished(
+            this.queueEvents,
+            COMMAND_TIMEOUT_MS,
+        ) as Promise<T>;
     }
 }

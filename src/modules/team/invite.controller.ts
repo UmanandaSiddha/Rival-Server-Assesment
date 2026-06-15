@@ -1,4 +1,12 @@
-import { Body, Controller, Delete, Get, Param, Post, UseGuards } from '@nestjs/common';
+import {
+    Body,
+    Controller,
+    Delete,
+    Get,
+    Param,
+    Post,
+    UseGuards,
+} from '@nestjs/common';
 import { AuthGuard, getUser } from '../auth/guards/auth.guard';
 import { UserRole } from 'src/database/enums';
 import { InviteService } from './invite.service';
@@ -19,11 +27,15 @@ interface RequestUser {
  */
 @Controller()
 export class InviteController {
-    constructor(private readonly inviteService: InviteService) { }
+    constructor(private readonly inviteService: InviteService) {}
 
     @UseGuards(AuthGuard)
     @Post('teams/:teamId/invites')
-    create(@getUser() user: RequestUser, @Param('teamId') teamId: string, @Body() dto: CreateInviteDto) {
+    create(
+        @getUser() user: RequestUser,
+        @Param('teamId') teamId: string,
+        @Body() dto: CreateInviteDto,
+    ) {
         return this.inviteService.create(user, teamId, dto);
     }
 
@@ -35,7 +47,11 @@ export class InviteController {
 
     @UseGuards(AuthGuard)
     @Delete('teams/:teamId/invites/:inviteId')
-    revoke(@getUser() user: RequestUser, @Param('teamId') teamId: string, @Param('inviteId') inviteId: string) {
+    revoke(
+        @getUser() user: RequestUser,
+        @Param('teamId') teamId: string,
+        @Param('inviteId') inviteId: string,
+    ) {
         return this.inviteService.revoke(user, teamId, inviteId);
     }
 

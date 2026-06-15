@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+    BadRequestException,
+    Injectable,
+    NotFoundException,
+} from '@nestjs/common';
 import { DatabaseService } from 'src/services/database/database.service';
 import { toCamelCaseDeep } from 'src/services/common/case-conversion.util';
 import { UserRole } from 'src/database/enums';
@@ -18,7 +22,7 @@ export class AdminService {
         private readonly databaseService: DatabaseService,
         private readonly authService: AuthService,
         private readonly taskService: TaskService,
-    ) { }
+    ) {}
 
     async listUsers(query: ListQueryDto) {
         const { page, limit, offset } = this.paginate(query);
@@ -27,7 +31,9 @@ export class AdminService {
         let i = 1;
 
         if (query.search) {
-            where.push(`("email" ILIKE $${i} OR "firstName" ILIKE $${i} OR "lastName" ILIKE $${i})`);
+            where.push(
+                `("email" ILIKE $${i} OR "firstName" ILIKE $${i} OR "lastName" ILIKE $${i})`,
+            );
             params.push(`%${query.search}%`);
             i++;
         }
@@ -47,7 +53,12 @@ export class AdminService {
             `SELECT COUNT(*)::int AS total FROM "User" ${whereSql}`,
             params,
         );
-        return this.page(toCamelCaseDeep(data.rows), count.rows[0]?.total ?? 0, page, limit);
+        return this.page(
+            toCamelCaseDeep(data.rows),
+            count.rows[0]?.total ?? 0,
+            page,
+            limit,
+        );
     }
 
     async listTeams(query: ListQueryDto) {
@@ -80,7 +91,12 @@ export class AdminService {
             `SELECT COUNT(*)::int AS total FROM "Team" t ${whereSql}`,
             params,
         );
-        return this.page(toCamelCaseDeep(data.rows), count.rows[0]?.total ?? 0, page, limit);
+        return this.page(
+            toCamelCaseDeep(data.rows),
+            count.rows[0]?.total ?? 0,
+            page,
+            limit,
+        );
     }
 
     /** All tasks across every team. Delegates to TaskService.list — an admin bypasses team scoping. */
@@ -88,9 +104,15 @@ export class AdminService {
         return this.taskService.list(admin, query);
     }
 
-    async updateUserRole(adminId: string, targetUserId: string, role: UserRole) {
+    async updateUserRole(
+        adminId: string,
+        targetUserId: string,
+        role: UserRole,
+    ) {
         if (adminId === targetUserId && role !== UserRole.ADMIN) {
-            throw new BadRequestException('You cannot remove your own admin role');
+            throw new BadRequestException(
+                'You cannot remove your own admin role',
+            );
         }
 
         const result = await this.databaseService.query(
@@ -104,9 +126,15 @@ export class AdminService {
         return toCamelCaseDeep(result.rows[0]);
     }
 
-    async setUserDisabled(adminId: string, targetUserId: string, disabled: boolean) {
+    async setUserDisabled(
+        adminId: string,
+        targetUserId: string,
+        disabled: boolean,
+    ) {
         if (adminId === targetUserId && disabled) {
-            throw new BadRequestException('You cannot disable your own account');
+            throw new BadRequestException(
+                'You cannot disable your own account',
+            );
         }
 
         const result = await this.databaseService.query(
@@ -128,6 +156,12 @@ export class AdminService {
     }
 
     private page<T>(data: T[], total: number, page: number, limit: number) {
-        return { data, page, limit, total, totalPages: Math.ceil(total / limit) || 0 };
+        return {
+            data,
+            page,
+            limit,
+            total,
+            totalPages: Math.ceil(total / limit) || 0,
+        };
     }
 }

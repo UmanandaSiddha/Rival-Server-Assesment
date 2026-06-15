@@ -1,4 +1,10 @@
-import { IsEnum, IsISO8601, IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+    IsEnum,
+    IsISO8601,
+    IsOptional,
+    IsString,
+    MaxLength,
+} from 'class-validator';
 import { TaskPriority, TaskStatus } from 'src/database/enums';
 
 // All fields optional. `null` is allowed for assigneeId (unassign) and dueDate (clear) — @IsOptional

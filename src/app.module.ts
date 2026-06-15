@@ -14,20 +14,20 @@ import { AttachmentModule } from './modules/attachment/attachment.module';
 import { AdminModule } from './modules/admin/admin.module';
 
 @Module({
-	imports: [
-		ConfigModule.forRoot({ isGlobal: true }),
-		DatabaseModule,
-		RedisModule,
-		LoggerModule,
-		QueueModule,
-		AuthModule,
-		RealtimeModule,
-		TaskModule,
-		TeamModule,
-		AttachmentModule,
-		AdminModule,
-	],
-	controllers: [AppController],
-	providers: [AppService],
+    imports: [
+        ConfigModule.forRoot({ isGlobal: true }),
+        DatabaseModule,
+        RedisModule,
+        LoggerModule,
+        QueueModule,
+        AuthModule,
+        RealtimeModule,
+        TaskModule,
+        TeamModule,
+        AttachmentModule,
+        AdminModule,
+    ],
+    controllers: [AppController],
+    providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}

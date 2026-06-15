@@ -1,25 +1,16 @@
 import { Module } from '@nestjs/common';
-import { BullModule } from '@nestjs/bullmq';
-import { TASK_COMMAND_QUEUE } from 'src/config/constants';
 import { AuthModule } from '../auth/auth.module';
-import { RealtimeModule } from '../realtime/realtime.module';
 import { TaskController } from './task.controller';
 import { TaskService } from './task.service';
-import { TaskCommandQueue } from './task.command-queue';
-import { TaskProcessor } from './task.processor';
 
 /**
- * Tasks. Writes go through the serialized TaskCommandQueue → TaskProcessor;
- * reads hit the DB directly.
+ * Tasks. Reads hit the DB directly; writes are dispatched to the TaskCommandQueue
+ * (in QueueModule, global) and applied by the serialized TaskProcessor.
  */
 @Module({
-    imports: [
-        AuthModule,
-        RealtimeModule,
-        BullModule.registerQueue({ name: TASK_COMMAND_QUEUE }),
-    ],
+    imports: [AuthModule],
     controllers: [TaskController],
-    providers: [TaskService, TaskCommandQueue, TaskProcessor],
+    providers: [TaskService],
     exports: [TaskService],
 })
-export class TaskModule { }
+export class TaskModule {}

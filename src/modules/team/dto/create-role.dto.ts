@@ -1,4 +1,12 @@
-import { ArrayUnique, IsArray, IsEnum, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+    ArrayUnique,
+    IsArray,
+    IsEnum,
+    IsNotEmpty,
+    IsOptional,
+    IsString,
+    MaxLength,
+} from 'class-validator';
 import { Permission } from 'src/database/enums';
 
 export class CreateRoleDto {

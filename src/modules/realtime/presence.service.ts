@@ -17,27 +17,39 @@ export class PresenceService {
     constructor(
         private readonly redisService: RedisService,
         private readonly publisher: RealtimePublisher,
-    ) { }
+    ) {}
 
     private key(teamId: string): string {
         return `presence:team:${teamId}`;
     }
 
     async join(teamId: string, user: PresenceUser): Promise<void> {
-        const count = await this.redisService.hIncrBy(this.key(teamId), user.id, 1);
+        const count = await this.redisService.hIncrBy(
+            this.key(teamId),
+            user.id,
+            1,
+        );
         if (count === 1) {
             await this.publisher.emitPresence(teamId, {
                 type: 'presence.online',
                 teamId,
                 actorId: user.id,
-                payload: { id: user.id, firstName: user.firstName, lastName: user.lastName },
+                payload: {
+                    id: user.id,
+                    firstName: user.firstName,
+                    lastName: user.lastName,
+                },
                 at: new Date().toISOString(),
             });
         }
     }
 
     async leave(teamId: string, user: PresenceUser): Promise<void> {
-        const count = await this.redisService.hIncrBy(this.key(teamId), user.id, -1);
+        const count = await this.redisService.hIncrBy(
+            this.key(teamId),
+            user.id,
+            -1,
+        );
         if (count <= 0) {
             await this.redisService.hDel(this.key(teamId), user.id);
             await this.publisher.emitPresence(teamId, {

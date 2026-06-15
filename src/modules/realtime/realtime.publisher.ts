@@ -37,7 +37,7 @@ export interface RealtimeEvent {
  */
 @Injectable()
 export class RealtimePublisher {
-    constructor(private readonly redisService: RedisService) { }
+    constructor(private readonly redisService: RedisService) {}
 
     async emitToTeam(
         teamId: string,
@@ -45,7 +45,13 @@ export class RealtimePublisher {
         payload?: any,
         actorId?: string,
     ): Promise<void> {
-        const event: RealtimeEvent = { type, teamId, actorId, payload, at: new Date().toISOString() };
+        const event: RealtimeEvent = {
+            type,
+            teamId,
+            actorId,
+            payload,
+            at: new Date().toISOString(),
+        };
         await this.redisService.publish(teamChannel(teamId), event);
     }
 

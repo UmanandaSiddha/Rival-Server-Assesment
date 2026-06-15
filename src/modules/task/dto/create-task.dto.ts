@@ -1,4 +1,11 @@
-import { IsEnum, IsISO8601, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+    IsEnum,
+    IsISO8601,
+    IsNotEmpty,
+    IsOptional,
+    IsString,
+    MaxLength,
+} from 'class-validator';
 import { TaskPriority, TaskStatus } from 'src/database/enums';
 
 export class CreateTaskDto {

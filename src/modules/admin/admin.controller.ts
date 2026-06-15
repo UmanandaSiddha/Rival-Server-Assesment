@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Patch, Query, UseGuards } from '@nestjs/common';
+import {
+    Body,
+    Controller,
+    Get,
+    Param,
+    Patch,
+    Query,
+    UseGuards,
+} from '@nestjs/common';
 import { AuthGuard, getUser } from '../auth/guards/auth.guard';
 import { RoleGuard } from '../auth/guards/role.guard';
 import { Roles } from '../auth/decorator/role.decorator';
@@ -19,7 +27,7 @@ interface RequestUser {
 @UseGuards(AuthGuard, RoleGuard)
 @Roles(UserRole.ADMIN)
 export class AdminController {
-    constructor(private readonly adminService: AdminService) { }
+    constructor(private readonly adminService: AdminService) {}
 
     @Get('users')
     listUsers(@Query() query: ListQueryDto) {
@@ -42,7 +50,11 @@ export class AdminController {
         @Param('id') targetUserId: string,
         @Body() dto: UpdateUserRoleDto,
     ) {
-        return this.adminService.updateUserRole(adminId, targetUserId, dto.role);
+        return this.adminService.updateUserRole(
+            adminId,
+            targetUserId,
+            dto.role,
+        );
     }
 
     @Patch('users/:id/disable')
@@ -51,6 +63,10 @@ export class AdminController {
         @Param('id') targetUserId: string,
         @Body() dto: SetUserDisabledDto,
     ) {
-        return this.adminService.setUserDisabled(adminId, targetUserId, dto.disabled);
+        return this.adminService.setUserDisabled(
+            adminId,
+            targetUserId,
+            dto.disabled,
+        );
     }
 }

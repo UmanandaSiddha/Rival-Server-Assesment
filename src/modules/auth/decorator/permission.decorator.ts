@@ -3,4 +3,5 @@ import { Permission } from 'src/database/enums';
 
 export const PERMISSION_KEY = 'requiredPermission';
 
-export const RequirePermission = (permission: Permission) => SetMetadata(PERMISSION_KEY, permission);
+export const RequirePermission = (permission: Permission) =>
+    SetMetadata(PERMISSION_KEY, permission);

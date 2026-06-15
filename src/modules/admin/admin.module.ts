@@ -11,4 +11,4 @@ import { AdminService } from './admin.service';
     controllers: [AdminController],
     providers: [AdminService, RoleGuard],
 })
-export class AdminModule { }
+export class AdminModule {}

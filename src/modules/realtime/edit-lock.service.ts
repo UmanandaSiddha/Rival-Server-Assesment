@@ -31,7 +31,7 @@ export class EditLockService {
     constructor(
         private readonly redisService: RedisService,
         private readonly publisher: RealtimePublisher,
-    ) { }
+    ) {}
 
     private key(taskId: string): string {
         return `editlock:task:${taskId}`;
@@ -48,14 +48,31 @@ export class EditLockService {
     }
 
     /** Acquire the lock, or refresh it if the caller already holds it. Fails if someone else holds it. */
-    async acquire(teamId: string, taskId: string, user: LockUser): Promise<EditLockResult> {
+    async acquire(
+        teamId: string,
+        taskId: string,
+        user: LockUser,
+    ): Promise<EditLockResult> {
         const key = this.key(taskId);
-        const holder: EditLockHolder = { userId: user.id, firstName: user.firstName, lastName: user.lastName };
+        const holder: EditLockHolder = {
+            userId: user.id,
+            firstName: user.firstName,
+            lastName: user.lastName,
+        };
         const value = JSON.stringify(holder);
 
-        const won = await this.redisService.setNxEx(key, value, LOCK_TTL_SECONDS);
+        const won = await this.redisService.setNxEx(
+            key,
+            value,
+            LOCK_TTL_SECONDS,
+        );
         if (won) {
-            await this.publisher.emitToTeam(teamId, 'task.edit_locked', { taskId, holder }, user.id);
+            await this.publisher.emitToTeam(
+                teamId,
+                'task.edit_locked',
+                { taskId, holder },
+                user.id,
+            );
             return { ok: true, holder };
         }
 
@@ -73,18 +90,31 @@ export class EditLockService {
     async refresh(taskId: string, user: LockUser): Promise<boolean> {
         const current = await this.getHolder(taskId);
         if (current && current.userId === user.id) {
-            await this.redisService.set(this.key(taskId), JSON.stringify(current), LOCK_TTL_SECONDS);
+            await this.redisService.set(
+                this.key(taskId),
+                JSON.stringify(current),
+                LOCK_TTL_SECONDS,
+            );
             return true;
         }
         return false;
     }
 
     /** Release the lock — only the holder can. Broadcasts so others can take over. */
-    async release(teamId: string, taskId: string, user: LockUser): Promise<void> {
+    async release(
+        teamId: string,
+        taskId: string,
+        user: LockUser,
+    ): Promise<void> {
         const current = await this.getHolder(taskId);
         if (current && current.userId === user.id) {
             await this.redisService.del(this.key(taskId));
-            await this.publisher.emitToTeam(teamId, 'task.edit_unlocked', { taskId }, user.id);
+            await this.publisher.emitToTeam(
+                teamId,
+                'task.edit_unlocked',
+                { taskId },
+                user.id,
+            );
         }
     }
 }

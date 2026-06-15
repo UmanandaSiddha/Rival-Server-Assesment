@@ -14,7 +14,7 @@ export class LoggerService extends ConsoleLogger {
             dateStyle: 'short',
             timeStyle: 'short',
             timeZone: 'Asia/Kolkata',
-        }).format(new Date())}\t${entry}\n`
+        }).format(new Date())}\t${entry}\n`;
 
         // Use LOG_DIR if set (e.g. in ECS); else cwd/logs so container can use /app/logs
         const logsDir = process.env.LOG_DIR || path.join(process.cwd(), 'logs');
@@ -23,7 +23,10 @@ export class LoggerService extends ConsoleLogger {
             if (!fs.existsSync(logsDir)) {
                 await fsPromises.mkdir(logsDir, { recursive: true });
             }
-            await fsPromises.appendFile(path.join(logsDir, 'LogFile.log'), formattedEntry);
+            await fsPromises.appendFile(
+                path.join(logsDir, 'LogFile.log'),
+                formattedEntry,
+            );
         } catch (e) {
             if (e instanceof Error) console.error(e.message);
         }
@@ -32,9 +35,7 @@ export class LoggerService extends ConsoleLogger {
     convertToString(message: any): string {
         if (typeof message !== 'string') {
             const compact = JSON.stringify(message);
-            message = compact
-                .replace(/:/g, ': ')
-                .replace(/,/g, ', ');
+            message = compact.replace(/:/g, ': ').replace(/,/g, ', ');
         }
 
         return message;

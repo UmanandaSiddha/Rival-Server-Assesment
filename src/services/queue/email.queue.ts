@@ -12,9 +12,7 @@ export interface EmailJobPayload {
 
 @Injectable()
 export class EmailQueue {
-    constructor(
-        @InjectQueue(EMAIL_QUEUE) private readonly queue: Queue,
-    ) { }
+    constructor(@InjectQueue(EMAIL_QUEUE) private readonly queue: Queue) {}
 
     async enqueue(job: EmailJobPayload) {
         return this.queue.add('send_email', job, {

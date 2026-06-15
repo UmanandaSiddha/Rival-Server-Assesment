@@ -15,4 +15,4 @@ import { EditLockService } from './edit-lock.service';
     providers: [RealtimePublisher, PresenceService, EditLockService],
     exports: [RealtimePublisher, PresenceService, EditLockService],
 })
-export class RealtimeModule { }
+export class RealtimeModule {}

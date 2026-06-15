@@ -2,7 +2,12 @@ import { Type } from 'class-transformer';
 import { IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 import { TaskStatus } from 'src/database/enums';
 
-export const TASK_SORT_FIELDS = ['dueDate', 'priority', 'createdAt', 'updatedAt'] as const;
+export const TASK_SORT_FIELDS = [
+    'dueDate',
+    'priority',
+    'createdAt',
+    'updatedAt',
+] as const;
 export type TaskSortField = (typeof TASK_SORT_FIELDS)[number];
 
 export class ListTasksQueryDto {

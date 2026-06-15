@@ -1,21 +1,25 @@
 import { BullModule } from '@nestjs/bullmq';
 import { Global, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { EMAIL_QUEUE } from 'src/config/constants';
+import { EMAIL_QUEUE, TASK_COMMAND_QUEUE } from 'src/config/constants';
+import { RealtimeModule } from 'src/modules/realtime/realtime.module';
 import { buildBullConnection } from './bull-connection';
 import { EmailQueue } from './email.queue';
 import { EmailService } from './email.service';
 import { EmailProcessor } from './email.processor';
+import { TaskCommandQueue } from './task-command.queue';
+import { TaskProcessor } from './task.processor';
 
 /**
- * BullMQ root + the email queue. Uses its own Redis connection — BullMQ needs
- * maxRetriesPerRequest: null for its blocking workers, unlike the app's REDIS_CLIENT.
- * Global so any feature module can inject EmailQueue without re-importing.
+ * Central BullMQ module: the Redis connection + every queue, producer, and worker.
+ * Uses its own connection — BullMQ needs maxRetriesPerRequest: null for blocking workers.
+ * Global so any feature module can inject a producer (EmailQueue, TaskCommandQueue) without re-importing.
  */
 @Global()
 @Module({
     imports: [
         ConfigModule,
+        RealtimeModule, // TaskProcessor broadcasts via RealtimePublisher after a commit
         BullModule.forRootAsync({
             imports: [ConfigModule],
             inject: [ConfigService],
@@ -29,9 +33,18 @@ import { EmailProcessor } from './email.processor';
                 },
             }),
         }),
-        BullModule.registerQueue({ name: EMAIL_QUEUE }),
+        BullModule.registerQueue(
+            { name: EMAIL_QUEUE },
+            { name: TASK_COMMAND_QUEUE },
+        ),
     ],
-    providers: [EmailQueue, EmailService, EmailProcessor],
-    exports: [EmailQueue, BullModule],
+    providers: [
+        EmailQueue,
+        EmailService,
+        EmailProcessor,
+        TaskCommandQueue,
+        TaskProcessor,
+    ],
+    exports: [EmailQueue, TaskCommandQueue, BullModule],
 })
-export class QueueModule { }
+export class QueueModule {}

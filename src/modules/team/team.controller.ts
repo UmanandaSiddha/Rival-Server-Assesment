@@ -25,7 +25,7 @@ interface RequestUser {
 @Controller('teams')
 @UseGuards(AuthGuard)
 export class TeamController {
-    constructor(private readonly teamService: TeamService) { }
+    constructor(private readonly teamService: TeamService) {}
 
     // Teams
     @Post()
@@ -44,7 +44,11 @@ export class TeamController {
     }
 
     @Patch(':teamId')
-    update(@getUser() user: RequestUser, @Param('teamId') teamId: string, @Body() dto: UpdateTeamDto) {
+    update(
+        @getUser() user: RequestUser,
+        @Param('teamId') teamId: string,
+        @Body() dto: UpdateTeamDto,
+    ) {
         return this.teamService.update(user, teamId, dto);
     }
 
@@ -66,7 +70,12 @@ export class TeamController {
         @Param('userId') targetUserId: string,
         @Body() dto: UpdateMemberRoleDto,
     ) {
-        return this.teamService.updateMemberRole(user, teamId, targetUserId, dto.roleId);
+        return this.teamService.updateMemberRole(
+            user,
+            teamId,
+            targetUserId,
+            dto.roleId,
+        );
     }
 
     @Delete(':teamId/members/:userId')
@@ -85,7 +94,11 @@ export class TeamController {
     }
 
     @Post(':teamId/roles')
-    createRole(@getUser() user: RequestUser, @Param('teamId') teamId: string, @Body() dto: CreateRoleDto) {
+    createRole(
+        @getUser() user: RequestUser,
+        @Param('teamId') teamId: string,
+        @Body() dto: CreateRoleDto,
+    ) {
         return this.teamService.createRole(user, teamId, dto);
     }
 
@@ -100,7 +113,11 @@ export class TeamController {
     }
 
     @Delete(':teamId/roles/:roleId')
-    deleteRole(@getUser() user: RequestUser, @Param('teamId') teamId: string, @Param('roleId') roleId: string) {
+    deleteRole(
+        @getUser() user: RequestUser,
+        @Param('teamId') teamId: string,
+        @Param('roleId') roleId: string,
+    ) {
         return this.teamService.deleteRole(user, teamId, roleId);
     }
 }

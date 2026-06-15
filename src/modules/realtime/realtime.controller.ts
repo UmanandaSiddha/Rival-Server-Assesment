@@ -14,7 +14,11 @@ import { AuthorizationService } from '../auth/authorization.service';
 import { RealtimeBus } from 'src/services/redis/realtime-bus.service';
 import { PresenceService } from './presence.service';
 import { EditLockService } from './edit-lock.service';
-import { RealtimePublisher, teamChannel, presenceChannel } from './realtime.publisher';
+import {
+    RealtimePublisher,
+    teamChannel,
+    presenceChannel,
+} from './realtime.publisher';
 import { DraftDto } from './dto/draft.dto';
 
 interface SseMessage {
@@ -42,22 +46,36 @@ export class RealtimeController {
         private readonly authorizationService: AuthorizationService,
         private readonly editLockService: EditLockService,
         private readonly publisher: RealtimePublisher,
-    ) { }
+    ) {}
 
     @Sse('teams/:teamId/stream')
-    stream(@Param('teamId') teamId: string, @getUser() user: RequestUser): Observable<SseMessage> {
+    stream(
+        @Param('teamId') teamId: string,
+        @getUser() user: RequestUser,
+    ): Observable<SseMessage> {
         return new Observable<SseMessage>((subscriber) => {
-            let teardown = () => { };
+            let teardown = () => {};
 
             (async () => {
                 // Only team members (or owner/app-admin) may listen.
-                await this.authorizationService.assertTeamMembership(user.id, teamId, user.role);
+                await this.authorizationService.assertTeamMembership(
+                    user.id,
+                    teamId,
+                    user.role,
+                );
 
                 await this.presenceService.join(teamId, user);
 
                 // Send the current online snapshot first so the client can render presence immediately.
-                const onlineUserIds = await this.presenceService.onlineUserIds(teamId);
-                subscriber.next({ data: { type: 'presence.snapshot', teamId, payload: { onlineUserIds } } });
+                const onlineUserIds =
+                    await this.presenceService.onlineUserIds(teamId);
+                subscriber.next({
+                    data: {
+                        type: 'presence.snapshot',
+                        teamId,
+                        payload: { onlineUserIds },
+                    },
+                });
 
                 const inner = this.realtimeBus
                     .subscribe([teamChannel(teamId), presenceChannel(teamId)])
@@ -83,7 +101,11 @@ export class RealtimeController {
         @Param('taskId') taskId: string,
         @getUser() user: RequestUser,
     ) {
-        await this.authorizationService.assertTeamMembership(user.id, teamId, user.role);
+        await this.authorizationService.assertTeamMembership(
+            user.id,
+            teamId,
+            user.role,
+        );
         return this.editLockService.acquire(teamId, taskId, user);
     }
 
@@ -94,7 +116,11 @@ export class RealtimeController {
         @Param('taskId') taskId: string,
         @getUser() user: RequestUser,
     ) {
-        await this.authorizationService.assertTeamMembership(user.id, teamId, user.role);
+        await this.authorizationService.assertTeamMembership(
+            user.id,
+            teamId,
+            user.role,
+        );
         await this.editLockService.release(teamId, taskId, user);
         return { ok: true };
     }
@@ -110,11 +136,17 @@ export class RealtimeController {
         @Body() dto: DraftDto,
         @getUser() user: RequestUser,
     ) {
-        await this.authorizationService.assertTeamMembership(user.id, teamId, user.role);
+        await this.authorizationService.assertTeamMembership(
+            user.id,
+            teamId,
+            user.role,
+        );
 
         const holdsLock = await this.editLockService.refresh(taskId, user);
         if (!holdsLock) {
-            throw new ConflictException('You do not hold the edit lock for this task');
+            throw new ConflictException(
+                'You do not hold the edit lock for this task',
+            );
         }
 
         await this.publisher.emitToTeam(

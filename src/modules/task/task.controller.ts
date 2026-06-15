@@ -24,7 +24,7 @@ interface RequestUser {
 @Controller('tasks')
 @UseGuards(AuthGuard)
 export class TaskController {
-    constructor(private readonly taskService: TaskService) { }
+    constructor(private readonly taskService: TaskService) {}
 
     @Post()
     create(@getUser() user: RequestUser, @Body() dto: CreateTaskDto) {
@@ -47,7 +47,11 @@ export class TaskController {
     }
 
     @Patch(':id')
-    update(@getUser() user: RequestUser, @Param('id') id: string, @Body() dto: UpdateTaskDto) {
+    update(
+        @getUser() user: RequestUser,
+        @Param('id') id: string,
+        @Body() dto: UpdateTaskDto,
+    ) {
         return this.taskService.update(user, id, dto);
     }
 

@@ -58,7 +58,9 @@ export class UserThrottlerGuard extends ThrottlerGuard {
         }
 
         const authHeader = req.headers?.authorization;
-        const normalized = Array.isArray(authHeader) ? authHeader[0] : authHeader;
+        const normalized = Array.isArray(authHeader)
+            ? authHeader[0]
+            : authHeader;
         if (!normalized) {
             return undefined;
         }
@@ -71,7 +73,9 @@ export class UserThrottlerGuard extends ThrottlerGuard {
         return token;
     }
 
-    private async resolveUserIdFromToken(token?: string): Promise<string | undefined> {
+    private async resolveUserIdFromToken(
+        token?: string,
+    ): Promise<string | undefined> {
         if (!token) {
             return undefined;
         }
@@ -82,7 +86,12 @@ export class UserThrottlerGuard extends ThrottlerGuard {
         }
 
         try {
-            const payload = await this.jwtService.verifyAsync<JwtPayload>(token, { secret });
+            const payload = await this.jwtService.verifyAsync<JwtPayload>(
+                token,
+                {
+                    secret,
+                },
+            );
             return payload.id;
         } catch {
             return undefined;
@@ -95,7 +104,9 @@ export class UserThrottlerGuard extends ThrottlerGuard {
         }
 
         const forwarded = req.headers?.['x-forwarded-for'];
-        const forwardedValue = Array.isArray(forwarded) ? forwarded[0] : forwarded;
+        const forwardedValue = Array.isArray(forwarded)
+            ? forwarded[0]
+            : forwarded;
         if (forwardedValue) {
             const firstForwardedIp = forwardedValue.split(',')[0]?.trim();
             if (firstForwardedIp) {

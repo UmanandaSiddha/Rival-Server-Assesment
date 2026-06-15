@@ -16,4 +16,4 @@ import { InviteService } from './invite.service';
     providers: [TeamService, InviteService],
     exports: [TeamService],
 })
-export class TeamModule { }
+export class TeamModule {}

@@ -1,8 +1,13 @@
 import { EmailTemplate } from './email.types';
 
 /** Minimal HTML email bodies (subject lives on the job; this renders only the body). */
-export function renderEmail(template: EmailTemplate, data: Record<string, any>): string {
-    const greeting = data.firstName ? `Hi ${escapeHtml(data.firstName)},` : 'Hi,';
+export function renderEmail(
+    template: EmailTemplate,
+    data: Record<string, any>,
+): string {
+    const greeting = data.firstName
+        ? `Hi ${escapeHtml(data.firstName)},`
+        : 'Hi,';
 
     switch (template) {
         case 'otp':

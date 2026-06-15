@@ -4,8 +4,7 @@ import { REDIS_CLIENT } from 'src/config/constants';
 
 @Injectable()
 export class RedisService {
-
-    constructor(@Inject(REDIS_CLIENT) private client: Redis) { }
+    constructor(@Inject(REDIS_CLIENT) private client: Redis) {}
 
     // Reverse map: socketId → userId, one entry per live socket.
     private readonly SOCKET_TO_USER = 'socket:socketToUser';
@@ -47,8 +46,18 @@ export class RedisService {
     }
 
     /** SET key val EX ttl NX — atomic acquire. Returns true only if the key was newly set (lock won). */
-    async setNxEx(key: string, value: string, ttlSeconds: number): Promise<boolean> {
-        const result = await this.client.set(key, value, 'EX', ttlSeconds, 'NX');
+    async setNxEx(
+        key: string,
+        value: string,
+        ttlSeconds: number,
+    ): Promise<boolean> {
+        const result = await this.client.set(
+            key,
+            value,
+            'EX',
+            ttlSeconds,
+            'NX',
+        );
         return result === 'OK';
     }
 
@@ -58,7 +67,13 @@ export class RedisService {
         try {
             let cursor = '0';
             do {
-                const [next, batch] = await this.client.scan(cursor, 'MATCH', pattern, 'COUNT', count);
+                const [next, batch] = await this.client.scan(
+                    cursor,
+                    'MATCH',
+                    pattern,
+                    'COUNT',
+                    count,
+                );
                 cursor = next;
                 if (batch.length) found.push(...batch);
             } while (cursor !== '0');
@@ -102,7 +117,7 @@ export class RedisService {
             return await this.client.flushall();
         } catch (error) {
             console.error('Redis FLUSHALL error:', error);
-            return null
+            return null;
         }
     }
 
@@ -111,7 +126,10 @@ export class RedisService {
         try {
             await this.client.hset(hashKey, field, value);
         } catch (error) {
-            console.error(`Redis HSET error for key ${hashKey}, field ${field}:`, error);
+            console.error(
+                `Redis HSET error for key ${hashKey}, field ${field}:`,
+                error,
+            );
         }
     }
 
@@ -119,7 +137,10 @@ export class RedisService {
         try {
             return await this.client.hget(hashKey, field);
         } catch (error) {
-            console.error(`Redis HGET error for key ${hashKey}, field ${field}:`, error);
+            console.error(
+                `Redis HGET error for key ${hashKey}, field ${field}:`,
+                error,
+            );
             return null;
         }
     }
@@ -164,7 +185,11 @@ export class RedisService {
         }
     }
 
-    async zRevrange(key: string, start: number, stop: number): Promise<string[]> {
+    async zRevrange(
+        key: string,
+        start: number,
+        stop: number,
+    ): Promise<string[]> {
         try {
             return await this.client.zrevrange(key, start, stop);
         } catch (error) {
@@ -220,7 +245,9 @@ export class RedisService {
      * Removes a socketId from the user's presence record. Returns the owning userId and `wasLast`
      * (the user's final socket) — callers use `wasLast` to decide whether to flip User.isOnline FALSE.
      */
-    async unregisterSocket(socketId: string): Promise<{ userId: string | null; wasLast: boolean }> {
+    async unregisterSocket(
+        socketId: string,
+    ): Promise<{ userId: string | null; wasLast: boolean }> {
         try {
             const userId = await this.getUserBySocket(socketId);
             if (!userId) {
@@ -231,7 +258,9 @@ export class RedisService {
                 .hdel(this.SOCKET_TO_USER, socketId)
                 .srem(this.userSocketsKey(userId), socketId)
                 .exec();
-            const remaining = await this.client.scard(this.userSocketsKey(userId));
+            const remaining = await this.client.scard(
+                this.userSocketsKey(userId),
+            );
             return { userId, wasLast: remaining === 0 };
         } catch (error) {
             console.error(`unregisterSocket Failed`, error);
@@ -242,7 +271,8 @@ export class RedisService {
     // --- Pub / Sub ---
     async publish(channel: string, payload: any): Promise<void> {
         try {
-            const message = typeof payload === 'string' ? payload : JSON.stringify(payload);
+            const message =
+                typeof payload === 'string' ? payload : JSON.stringify(payload);
             await this.client.publish(channel, message);
         } catch (error) {
             console.error(`Redis PUBLISH error for channel ${channel}:`, error);
