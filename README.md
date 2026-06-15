@@ -309,7 +309,8 @@ sequenceDiagram
     API-->>U: set accessToken + refreshToken cookies, send OTP email
     U->>API: POST /auth/verify-otp (000000 in dev)
     API-->>U: account verified
-    Note over U,API: On refresh, the client calls GET /auth/me to rehydrate;<br/>GET /auth/refresh-token rotates tokens when the access token expires.
+    Note over U,API: On refresh the client calls GET /auth/me to rehydrate
+    Note over U,API: GET /auth/refresh-token rotates tokens when the access token expires
 ```
 
 ---
