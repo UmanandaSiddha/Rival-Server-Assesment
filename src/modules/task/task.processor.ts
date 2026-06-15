@@ -11,10 +11,9 @@ import { CreateTaskData, TaskCommand, TASK_NOT_FOUND, UpdateTaskData } from './t
 const MUTABLE_FIELDS = ['title', 'description', 'status', 'priority', 'dueDate', 'assigneeId'] as const;
 
 /**
- * The single serialized writer for tasks (concurrency 1 = strict FIFO, the simplest correct ordering;
- * scale path: shard by task via pg advisory locks + higher concurrency). Each command applies in one
- * transaction — mutate the Task projection, bump `version`, append the TaskActivity event — then the
- * committed state is broadcast to the team. `version` is the convergence token clients reconcile to.
+ * Single serialized writer for tasks (concurrency 1 = strict FIFO ordering).
+ * Each command runs in one transaction — mutate Task, bump `version`, append TaskActivity —
+ * then broadcasts committed state. `version` is the convergence token clients reconcile to.
  */
 @Processor(TASK_COMMAND_QUEUE, { concurrency: 1 })
 export class TaskProcessor extends WorkerHost {

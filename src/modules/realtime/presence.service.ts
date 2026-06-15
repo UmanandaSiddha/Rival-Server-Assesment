@@ -9,10 +9,8 @@ interface PresenceUser {
 }
 
 /**
- * Tracks which users are live in a team, driven by the SSE connection lifecycle (open = online,
- * close = offline). Ref-counted per user via a Redis hash (userId -> open connection count) so a
- * user with two tabs only goes offline when the LAST stream closes. Presence transitions are
- * published so other members see joins/leaves in real time.
+ * Tracks who's live in a team via the SSE connection lifecycle. Ref-counted per user (Redis hash of
+ * open connections) so multiple tabs only go offline on the last close. Transitions are broadcast.
  */
 @Injectable()
 export class PresenceService {

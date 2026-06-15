@@ -19,9 +19,8 @@ export interface UpdateTaskData {
 }
 
 /**
- * Commands handed to the serialized task pipeline. Authorization + existence are validated
- * synchronously in TaskService BEFORE enqueue, so the processor trusts the command. `actorId` is
- * the user who issued it (recorded in the activity log / used as createdBy).
+ * Commands for the serialized task pipeline. Auth + existence are validated in TaskService
+ * before enqueue, so the processor trusts the command. `actorId` is the issuing user.
  */
 export type TaskCommand =
     | { type: 'create'; teamId: string; actorId: string; data: CreateTaskData }

@@ -8,8 +8,8 @@ import { renderEmail } from './email.templates';
 import { EmailTemplate } from './email.types';
 
 /**
- * Worker for the email queue. Renders the template body and hands off to Resend. Throwing here lets
- * BullMQ retry per the producer's backoff policy; a permanently failing job lands in the failed set.
+ * Email queue worker. Renders the template and sends via Resend.
+ * Throwing lets BullMQ retry per the producer's backoff policy.
  */
 @Processor(EMAIL_QUEUE)
 export class EmailProcessor extends WorkerHost {

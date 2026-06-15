@@ -79,7 +79,6 @@ export class AllExceptionsFilter extends BaseExceptionFilter {
 		this.logger.error(`Status ${status} - ${rawError} - ${request.url}`, AllExceptionsFilter.name);
 		console.error(`[${status}] ${request.method} ${request.url} →`, rawError);
 
-		// NOTE: do NOT call super.catch() here — we have already written the response above.
-		// BaseExceptionFilter.catch would write a second time → ERR_HTTP_HEADERS_SENT on every error.
+		// Don't call super.catch() — we already wrote the response; a second write → ERR_HTTP_HEADERS_SENT.
 	}
 }

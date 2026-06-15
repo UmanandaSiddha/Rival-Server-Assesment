@@ -7,9 +7,8 @@ import { TeamService } from './team.service';
 import { InviteService } from './invite.service';
 
 /**
- * Teams, members, custom roles, and email invites. Admin-style mutations are synchronous transactional
- * writes (low contention) with post-commit realtime broadcasts. AuthModule provides the guard +
- * AuthorizationService; RealtimeModule the publisher; EmailQueue (global) sends invite emails.
+ * Teams, members, custom roles, and email invites. Mutations are synchronous transactional
+ * writes with post-commit realtime broadcasts.
  */
 @Module({
     imports: [AuthModule, RealtimeModule],

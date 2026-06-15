@@ -23,7 +23,7 @@ import { DatabaseService } from 'src/services/database/database.service';
 import { EmailQueue } from 'src/services/queue/email.queue';
 import { toCamelCaseDeep } from 'src/services/common/case-conversion.util';
 
-// The system role every new user gets in their own default team (see migration 004 seed).
+// System role seeded for every new user in their default team (migration 004).
 const ADMIN_SYSTEM_ROLE_ID = 'role_system_admin';
 
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -76,7 +76,7 @@ export class AuthService {
         }
     }
 
-    // Invalidate user cache (call this when user data changes)
+    // Invalidate the token cache when a user's data changes.
     async invalidateUserCache(userId: string): Promise<void> {
         try {
             const pattern = `${REDIS_USER_TOKEN_CACHE_PREFIX}:*`;
@@ -102,7 +102,6 @@ export class AuthService {
         }
     }
 
-    // Generate JWT Token
     async generateToken(userId: string, type: 'ACCESS_TOKEN' | 'REFRESH_TOKEN', sessionId: string | null): Promise<string> {
         const secret = type === 'ACCESS_TOKEN'
             ? this.configService.get<string>('ACCESS_TOKEN_SECRET')
@@ -114,7 +113,7 @@ export class AuthService {
         return this.jwtService.sign(payload, { secret, expiresIn });
     }
 
-    // Generate 6 digit OTP
+    // 6-digit OTP; always '000000' in development.
     async generateOTP(): Promise<{ otpString: string, otpToken: string, otpExpire: number }> {
         let otpString: string;
         if (this.configService.get<string>('NODE_ENV') !== 'development') {
@@ -133,7 +132,6 @@ export class AuthService {
         return { otpString, otpToken, otpExpire };
     }
 
-    // Send JWT Token to client cookies
     async sendToken(res: Response, type: 'ACCESS_TOKEN' | 'REFRESH_TOKEN', token: string): Promise<void> {
         const isProduction = this.configService.get<string>('NODE_ENV') === 'production';
         const tokenName = type === 'ACCESS_TOKEN' ? 'accessToken' : 'refreshToken';
@@ -148,7 +146,6 @@ export class AuthService {
         });
     }
 
-    // Clear client tokens
     async clearToken(res: Response, type: 'ACCESS_TOKEN' | 'REFRESH_TOKEN'): Promise<void> {
         const isProduction = this.configService.get<string>('NODE_ENV') === 'production';
         const tokenName = type === 'ACCESS_TOKEN' ? 'accessToken' : 'refreshToken';
@@ -161,10 +158,7 @@ export class AuthService {
         });
     }
 
-    /**
-     * Queue the OTP email. In development the OTP is always '000000', and if RESEND_API_KEY is unset
-     * the email worker logs instead of sending — so local signup/login works without a provider.
-     */
+    /** Queue the OTP email. */
     private async deliverOtp(email: string, otpString: string, firstName?: string): Promise<void> {
         await this.emailQueue.enqueue({
             to: email,
@@ -186,7 +180,6 @@ export class AuthService {
 
     // --- Services ---
 
-    // Request OTP
     async requestOtp(dto: RequestDto) {
         const { email } = dto;
 
@@ -194,7 +187,7 @@ export class AuthService {
             `SELECT * FROM "User" WHERE "email" = $1 LIMIT 1`,
             [email],
         );
-        const user = userResult.rows[0];
+        const user = userResult.rows[0] ? toCamelCaseDeep(userResult.rows[0]) : null;
         if (!user) throw new BadRequestException('Invalid Request!!');
 
         const { otpString, otpToken, otpExpire } = await this.generateOTP();

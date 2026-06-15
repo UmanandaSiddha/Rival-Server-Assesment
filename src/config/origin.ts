@@ -15,10 +15,7 @@ export function isPermissiveCorsEnabled(): boolean {
 	return v === 'true' || v === '1' || v === 'yes';
 }
 
-/**
- * Shared CORS origin callback for HTTP (Express) and Socket.IO.
- * Default: allowlisted origins only. Permissive opt-in via CORS_PERMISSIVE=true.
- */
+/** Shared CORS origin callback for HTTP (Express) and Socket.IO. */
 export function corsOriginCallback(
 	origin: string | undefined,
 	callback: (err: Error | null, allow?: boolean | string) => void,

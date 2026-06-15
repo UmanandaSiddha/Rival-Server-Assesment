@@ -2,9 +2,8 @@ import { ConfigService } from '@nestjs/config';
 import { ConnectionOptions } from 'bullmq';
 
 /**
- * Builds the Redis connection BullMQ uses. Separate from the app's REDIS_CLIENT because BullMQ
- * requires maxRetriesPerRequest: null for its blocking workers. Shared by the queue root and by
- * any QueueEvents instance (e.g. the task command pipeline awaiting job completion).
+ * Redis connection for BullMQ. Separate from REDIS_CLIENT because BullMQ requires
+ * maxRetriesPerRequest: null for its blocking workers. Shared by the queue root and QueueEvents.
  */
 export function buildBullConnection(configService: ConfigService): ConnectionOptions {
     const tlsEnabled = ['true', '1', 'yes'].includes(

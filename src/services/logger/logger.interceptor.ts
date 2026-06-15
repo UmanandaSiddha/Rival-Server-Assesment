@@ -27,7 +27,6 @@ export class LoggingInterceptor implements NestInterceptor {
                     const { statusCode } = response;
                     const elapsedTime = Date.now() - now;
 
-                    // Log the outgoing response using your service
                     this.logger.log(
                         `<-- ${method} ${originalUrl} ${statusCode} - ${elapsedTime}ms`,
                         'HTTP',

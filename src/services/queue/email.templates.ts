@@ -1,9 +1,6 @@
 import { EmailTemplate } from './email.types';
 
-/**
- * Minimal HTML email bodies. The job carries the subject; this only renders the body so templates
- * stay data-driven. Swap for React Email / MJML later without touching producers or the worker.
- */
+/** Minimal HTML email bodies (subject lives on the job; this renders only the body). */
 export function renderEmail(template: EmailTemplate, data: Record<string, any>): string {
     const greeting = data.firstName ? `Hi ${escapeHtml(data.firstName)},` : 'Hi,';
 

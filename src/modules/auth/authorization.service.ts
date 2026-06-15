@@ -2,11 +2,7 @@ import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/commo
 import { Permission, UserRole } from 'src/database/enums';
 import { DatabaseService } from 'src/services/database/database.service';
 
-/**
- * A user's effective access within a single team.
- * `hasAll` is true for the team owner (Team.ownerId) and app-level admins (User.role = 'ADMIN'),
- * who bypass the permission list entirely. Otherwise `permissions` is their role's permission set.
- */
+/** A user's effective access in a team. `hasAll` (owner or app-admin) bypasses the permission list. */
 export interface TeamAccess {
     teamId: string;
     isOwner: boolean;
@@ -16,18 +12,14 @@ export interface TeamAccess {
 }
 
 /**
- * Team-scoped authorization. A member's allowed actions come from their role's `permissions` array
- * (Role.permissions). The team owner and app-level admins are never gated by a role, so editing a
- * role can never lock the owner out, and an admin can always view/act across teams (admin bonus).
+ * Team-scoped authorization. Members are gated by their role's permissions; the team owner and
+ * app-level admins bypass roles (so editing a role can't lock the owner out).
  */
 @Injectable()
 export class AuthorizationService {
     constructor(private readonly databaseService: DatabaseService) { }
 
-    /**
-     * Resolve a user's access in a team. Throws NotFound if the team is gone, Forbidden if the user
-     * is neither owner, app-admin, nor a member. The result is safe to use for permission checks.
-     */
+    /** Resolve a user's access in a team. Throws if the team is missing or the user isn't a member. */
     async getTeamAccess(userId: string, teamId: string, userRole?: UserRole): Promise<TeamAccess> {
         const isAppAdmin = userRole === UserRole.ADMIN;
 
@@ -43,8 +35,7 @@ export class AuthorizationService {
             return { teamId, isOwner, isAppAdmin, hasAll: true, permissions: [] };
         }
 
-        // Cast the enum array to text[] so node-pg returns a real string[] (it can't parse
-        // arrays of custom enum types and would otherwise hand back the raw '{A,B}' literal).
+        // Cast enum[] -> text[] so node-pg returns a real string[] (it can't parse custom enum arrays).
         const memberResult = await this.databaseService.query<{ permissions: Permission[] }>(
             `
                 SELECT r."permissions"::text[] AS permissions
@@ -86,10 +77,7 @@ export class AuthorizationService {
         throw new ForbiddenException(`Missing permission: ${permission}`);
     }
 
-    /**
-     * Resolve a task's team and the caller's access to it (throws NotFound/Forbidden). Use this once
-     * per request when several permissions must be checked (avoids re-querying per permission).
-     */
+    /** Resolve the caller's access to a task's team. Use when several permissions need checking. */
     async getTaskAccess(
         userId: string,
         taskId: string,
@@ -117,10 +105,7 @@ export class AuthorizationService {
         }
     }
 
-    /**
-     * Resolve a task's team, then assert `permission` on it. Use for flat /tasks/:id routes where the
-     * team isn't in the URL. Returns the access for the task's team.
-     */
+    /** Resolve a task's team and assert `permission` on it — for flat /tasks/:id routes. */
     async assertTaskPermission(
         userId: string,
         taskId: string,

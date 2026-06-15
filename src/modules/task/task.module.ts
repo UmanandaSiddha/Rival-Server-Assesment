@@ -9,9 +9,8 @@ import { TaskCommandQueue } from './task.command-queue';
 import { TaskProcessor } from './task.processor';
 
 /**
- * Tasks. Writes go through the serialized TaskCommandQueue → TaskProcessor (event-sourced pipeline);
- * reads hit the DB directly. RealtimeModule provides RealtimePublisher for post-commit broadcasts;
- * AuthModule provides the guard + AuthorizationService for permission checks.
+ * Tasks. Writes go through the serialized TaskCommandQueue → TaskProcessor;
+ * reads hit the DB directly.
  */
 @Module({
     imports: [

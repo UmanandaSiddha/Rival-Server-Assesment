@@ -117,7 +117,7 @@ export class TaskService {
             const p = i++;
             where.push(
                 `(t."teamId" IN (SELECT "teamId" FROM "TeamMember" WHERE "userId" = $${p})
-                  OR EXISTS (SELECT 1 FROM "Team" tt WHERE tt."id" = t."teamId" AND tt."ownerId" = $${p}))`,
+                    OR EXISTS (SELECT 1 FROM "Team" tt WHERE tt."id" = t."teamId" AND tt."ownerId" = $${p}))`,
             );
             params.push(user.id);
         }

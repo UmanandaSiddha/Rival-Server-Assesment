@@ -48,7 +48,6 @@ export const createRedisConnection = (configService: ConfigService): Redis => {
 
     const client = new Redis(config);
 
-    // Enhanced logging
     client.on('connect', () => console.log(`Redis TCP connection established to ${host}:${port}`));
     client.on('ready', () => console.log('Redis is ready for commands'));
     client.on('end', () => console.warn('Redis connection closed. Attempting to reconnect...'));

@@ -9,9 +9,7 @@ import { AuthorizationService } from '../auth/authorization.service';
 import { RealtimePublisher } from '../realtime/realtime.publisher';
 import { AddLinkDto } from './dto/add-link.dto';
 
-// Local file storage root; files are served read-only at /uploads/** (see main.ts useStaticAssets).
-// Swapping to S3 later means changing only the write/url logic here — the schema already carries
-// `storageProvider`, so existing local rows keep working.
+// Local file storage root; served read-only at /uploads/** (see main.ts useStaticAssets).
 const UPLOAD_ROOT = join(process.cwd(), 'uploads');
 const MAX_LINK_PREVIEW_BYTES = 512 * 1024;
 

@@ -5,7 +5,7 @@ import { RedisService } from 'src/services/redis/redis.service';
 export const teamChannel = (teamId: string) => `team:${teamId}`;
 export const presenceChannel = (teamId: string) => `presence:${teamId}`;
 
-/** Event types pushed to clients. Keep these in sync with the frontend's event handlers. */
+/** Event types pushed to clients. Keep in sync with the frontend handlers. */
 export type RealtimeEventType =
     | 'task.created'
     | 'task.updated'
@@ -32,9 +32,8 @@ export interface RealtimeEvent {
 }
 
 /**
- * Publishes domain events to a team's Redis channels. Call this AFTER a write commits (the write
- * itself is synchronous, with optimistic locking handling conflicts). Every app instance subscribed
- * via RealtimeBus then fans the event out to its connected SSE clients — so it scales horizontally.
+ * Publishes domain events to a team's Redis channels — call AFTER a write commits.
+ * Every app instance subscribed via RealtimeBus fans the event out to its SSE clients.
  */
 @Injectable()
 export class RealtimePublisher {

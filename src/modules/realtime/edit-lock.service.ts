@@ -19,15 +19,12 @@ interface LockUser {
     lastName?: string;
 }
 
-// Soft edit-lock TTL. Refreshed by draft batches / heartbeats; auto-expires if the editor vanishes
-// (closes the tab, crashes) so a task never stays locked forever.
+// TTL refreshed by drafts/heartbeats; auto-expires if the editor vanishes so a task never stays locked.
 const LOCK_TTL_SECONDS = 30;
 
 /**
- * One-editor-at-a-time lock for a task, held in Redis. The first user to acquire it can edit; others
- * are told who holds it (and watch the live draft read-only). Re-entrant for the holder (refresh).
- * This is a cooperative/soft lock for UX — the durable write still goes through the task command
- * pipeline with version checks, so the lock is never a correctness dependency.
+ * One-editor-at-a-time lock for a task, in Redis. Cooperative/soft (UX only) — the durable write
+ * still goes through the versioned task pipeline, so the lock is never a correctness dependency.
  */
 @Injectable()
 export class EditLockService {

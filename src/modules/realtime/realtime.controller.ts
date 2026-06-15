@@ -29,10 +29,9 @@ interface RequestUser {
 }
 
 /**
- * Server-Sent Events for a team: live task/team changes + presence (who's online), on one stream.
- * The browser opens `new EventSource('/realtime/teams/:teamId/stream', { withCredentials: true })`;
- * auth is via the accessToken cookie (EventSource can't set headers). Presence is bound to the
- * connection: the user is marked online on subscribe and offline when the stream tears down.
+ * SSE stream per team: live task/team changes + presence on one connection.
+ * Auth is via the accessToken cookie since EventSource can't set headers.
+ * Presence is connection-bound: online on subscribe, offline on teardown.
  */
 @Controller('realtime')
 @UseGuards(AuthGuard)
@@ -101,9 +100,8 @@ export class RealtimeController {
     }
 
     /**
-     * Broadcast a batched in-progress edit to watchers (read-only). Requires holding the edit lock,
-     * which enforces one-editor-at-a-time and refreshes the lock TTL. The draft is never persisted —
-     * the durable save goes through the task command pipeline.
+     * Broadcast an in-progress edit to watchers. Requires the edit lock (refreshes its TTL).
+     * Draft is never persisted — durable saves go through the task command pipeline.
      */
     @Post('teams/:teamId/tasks/:taskId/draft')
     async streamDraft(

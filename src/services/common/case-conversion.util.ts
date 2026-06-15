@@ -1,7 +1,6 @@
 /**
- * Convert snake_case / kebab-case keys to camelCase, recursively through objects and arrays.
- * Used to map raw Postgres rows (e.g. created_at) to the camelCase shape the app/API uses,
- * while leaving Dates, Buffers and primitives untouched.
+ * Recursively camelCase object keys (maps raw Postgres rows like created_at to the API shape).
+ * Leaves Dates, Buffers and primitives untouched.
  */
 
 function toCamelCase(key: string): string {

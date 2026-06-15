@@ -5,11 +5,8 @@ import { AuthorizationService } from '../authorization.service';
 import { Permission } from 'src/database/enums';
 
 /**
- * Enforces @RequirePermission(...) on team-scoped routes. Resolves the team context from the URL/body:
- *   - :taskId param  -> permission is checked against the task's team
- *   - :teamId param or body.teamId -> checked directly
- * The team owner and app-level admins bypass inside AuthorizationService. For flat /tasks/:id routes
- * (no :teamId/:taskId), check in the service via AuthorizationService.assertTaskPermission instead.
+ * Enforces @RequirePermission(...) on routes with a :taskId or :teamId (or body.teamId).
+ * Routes without that context check permissions in the service instead.
  */
 @Injectable()
 export class PermissionGuard implements CanActivate {

@@ -6,14 +6,12 @@ import { RedisService } from './redis.service';
 type Listener = (message: any) => void;
 
 /**
- * Turns Redis pub/sub channels into RxJS Observables for NestJS @Sse() endpoints.
+ * Turns Redis pub/sub channels into RxJS Observables for @Sse() endpoints.
  *
- * Scale note: this uses ONE shared Redis subscriber connection per process and ref-counts channel
- * subscriptions in-memory (channel -> set of local listeners). A naive "one Redis connection per SSE
- * client" design dies at a few thousand clients (Redis maxclients ~10k); here Redis connections are
- * O(instances), not O(connected users), so it scales to 100k+ SSE clients across a handful of nodes.
- * The shared connection SUBSCRIBEs to a channel on its first local listener and UNSUBSCRIBEs on its
- * last, so Redis only fans out channels this instance actually has listeners for.
+ * One shared subscriber connection per process, with in-memory ref-counting of channels
+ * (channel -> set of listeners). Redis connections are O(instances), not O(users), so it
+ * avoids the maxclients (~10k) ceiling of one-connection-per-client. Channel is SUBSCRIBEd
+ * on its first local listener and UNSUBSCRIBEd on its last.
  */
 @Injectable()
 export class RealtimeBus implements OnModuleDestroy {

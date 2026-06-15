@@ -10,9 +10,8 @@ import { TaskCommand } from './task.commands';
 const COMMAND_TIMEOUT_MS = 15000;
 
 /**
- * Producer for the serialized task pipeline. Enqueues a command and awaits the worker's result via
- * QueueEvents (works across instances), so callers get the committed task back synchronously even
- * though the write was processed off the request thread. Ordering/serialization happens in the worker.
+ * Producer for the serialized task pipeline. Enqueues a command and awaits the worker's
+ * result via QueueEvents (cross-instance), so callers get the committed task back synchronously.
  */
 @Injectable()
 export class TaskCommandQueue implements OnModuleInit, OnModuleDestroy {

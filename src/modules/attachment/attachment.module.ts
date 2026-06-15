@@ -5,9 +5,8 @@ import { AttachmentController } from './attachment.controller';
 import { AttachmentService } from './attachment.service';
 
 /**
- * Task attachments — uploaded files (stored locally, served at /uploads/**) and external links
- * (with a best-effort OpenGraph preview). Attaching/removing requires TASK_UPDATE; changes broadcast
- * to the team in real time.
+ * Task attachments — local files (served at /uploads/**) and external links with an
+ * OpenGraph preview. Mutations require TASK_UPDATE and broadcast to the team.
  */
 @Module({
     imports: [AuthModule, RealtimeModule],
