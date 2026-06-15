@@ -180,6 +180,20 @@ export class AuthService {
 
     // --- Services ---
 
+    /** Current authenticated user (safe columns only) — lets the client rehydrate on refresh. */
+    async me(userId: string) {
+        const result = await this.databaseService.query(
+            `
+                SELECT "id", "email", "firstName", "lastName", "role", "isVerified", "isOnline",
+                    "isDisabled", "avatarUrl", "timezone", "created_at", "updated_at"
+                FROM "User" WHERE "id" = $1 LIMIT 1
+            `,
+            [userId],
+        );
+        if (!result.rows[0]) throw new UnauthorizedException('User not found');
+        return { data: toCamelCaseDeep(result.rows[0]) };
+    }
+
     async requestOtp(dto: RequestDto) {
         const { email } = dto;
 

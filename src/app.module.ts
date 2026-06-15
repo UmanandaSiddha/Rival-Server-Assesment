@@ -11,6 +11,7 @@ import { RealtimeModule } from './modules/realtime/realtime.module';
 import { TaskModule } from './modules/task/task.module';
 import { TeamModule } from './modules/team/team.module';
 import { AttachmentModule } from './modules/attachment/attachment.module';
+import { AdminModule } from './modules/admin/admin.module';
 
 @Module({
 	imports: [
@@ -24,6 +25,7 @@ import { AttachmentModule } from './modules/attachment/attachment.module';
 		TaskModule,
 		TeamModule,
 		AttachmentModule,
+		AdminModule,
 	],
 	controllers: [AppController],
 	providers: [AppService],

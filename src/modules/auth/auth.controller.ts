@@ -42,6 +42,14 @@ export class AuthController {
 		return this.authService.refreshToken(req, res);
 	}
 
+	// Allowed while unverified so the client can rehydrate and show the verify-account state.
+	@UseGuards(AuthGuard)
+	@AllowUnverified()
+	@Get('me')
+	me(@getUser('id') userId: string) {
+		return this.authService.me(userId);
+	}
+
 	// OTP brute-force prevention: 5/300s keeps success <1-in-200k against a 6-digit OTP.
 	@Throttle({ otp: { limit: 5, ttl: 300_000 } })
 	@Post('verify-otp')
