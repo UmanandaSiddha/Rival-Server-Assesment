@@ -27,10 +27,8 @@ for i in $(seq 1 30); do
   sleep 2
 done
 
-# Idempotent: dbmate create errors if the DB already exists — swallow it.
-echo "==> Ensuring database exists…"
-node_modules/.bin/dbmate create 2>/dev/null || true
-
+# The database is expected to already exist (created manually on the VPS, or by POSTGRES_DB
+# in docker-compose.dev.yml). We only apply migrations here — no `dbmate create`.
 echo "==> Running migrations…"
 $DBMATE up
 
