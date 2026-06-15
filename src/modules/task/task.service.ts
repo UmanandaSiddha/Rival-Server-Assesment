@@ -186,8 +186,23 @@ export class TaskService {
         const sortColumn = SORT_COLUMNS[query.sort ?? 'createdAt'];
         const order = (query.order ?? 'desc').toUpperCase();
 
+        // Each row carries a lightweight attachment summary (count + up to 3 most-recent preview
+        // images) so the UI can show thumbnails on cards without an extra request per task.
         const dataSql = `
-            SELECT t.* FROM "Task" t
+            SELECT t.*,
+                (SELECT COUNT(*)::int FROM "TaskAttachment" a WHERE a."taskId" = t."id")
+                    AS "attachmentCount",
+                COALESCE((
+                    SELECT json_agg(p."previewUrl")
+                    FROM (
+                        SELECT a."previewUrl"
+                        FROM "TaskAttachment" a
+                        WHERE a."taskId" = t."id" AND a."previewUrl" IS NOT NULL
+                        ORDER BY a."created_at" DESC
+                        LIMIT 3
+                    ) p
+                ), '[]'::json) AS "attachmentPreviews"
+            FROM "Task" t
             ${whereSql}
             ORDER BY ${sortColumn} ${order} NULLS LAST, t."id" ${order}
             LIMIT $${i++} OFFSET $${i++}
