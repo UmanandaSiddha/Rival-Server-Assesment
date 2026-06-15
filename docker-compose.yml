@@ -1,0 +1,25 @@
+services:
+  backend:
+    # Pulled from the registry — the VPS never builds. CI builds + pushes the image; set
+    # BACKEND_IMAGE in .env to the pushed tag (e.g. ghcr.io/<owner>/<repo>:latest).
+    image: ${BACKEND_IMAGE:-ghcr.io/OWNER/rival-server:latest}
+    container_name: rival-backend
+    restart: unless-stopped
+    # All env (DATABASE_URL, REDIS_HOST/PORT, secrets, RESEND_*, FRONTEND_URL, …) is read from
+    # .env on the VPS — never committed. See .env.example.
+    env_file:
+      - .env
+    # Uploaded attachments persist across restarts (swap for S3 in real prod).
+    volumes:
+      - rival-uploads:/app/uploads
+    networks:
+      - shared-network
+
+# Postgres, Redis and nginx-proxy-manager run as shared global containers on the VPS; this app
+# just joins their network and connects via the hostnames in .env (postgres / redis).
+networks:
+  shared-network:
+    external: true
+
+volumes:
+  rival-uploads:

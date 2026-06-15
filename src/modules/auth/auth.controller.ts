@@ -21,13 +21,13 @@ import { RequestDto } from './dto/request.dto';
 export class AuthController {
     constructor(private readonly authService: AuthService) {}
 
-    @Throttle({ otp: { limit: 5, ttl: 300_000 } })
+    @Throttle({ default: { limit: 5, ttl: 300_000 } })
     @Post('request-otp')
     requestOtp(@Body() dto: RequestDto) {
         return this.authService.requestOtp(dto);
     }
 
-    @Throttle({ auth: { limit: 5, ttl: 60_000 } })
+    @Throttle({ default: { limit: 5, ttl: 60_000 } })
     @Post('sign-up')
     signUp(@Body() dto: SignUpDto, @Res({ passthrough: true }) res: Response) {
         return this.authService.signUp(dto, res);
@@ -50,14 +50,14 @@ export class AuthController {
     }
 
     // OTP brute-force prevention: 5/300s keeps success <1-in-200k against a 6-digit OTP.
-    @Throttle({ otp: { limit: 5, ttl: 300_000 } })
+    @Throttle({ default: { limit: 5, ttl: 300_000 } })
     @Post('verify-otp')
     verifyOtp(@Body() dto: OtpDto, @Res({ passthrough: true }) res: Response) {
         return this.authService.verifyOtp(dto, res);
     }
 
     // Credential-stuffing prevention: 5/60s.
-    @Throttle({ auth: { limit: 5, ttl: 60_000 } })
+    @Throttle({ default: { limit: 5, ttl: 60_000 } })
     @Post('sign-in')
     signIn(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
         return this.authService.signIn(dto, res);

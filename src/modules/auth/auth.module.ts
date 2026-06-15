@@ -17,14 +17,10 @@ import { UserThrottlerGuard } from './guards/user-throttler.guard';
         ConfigModule,
         DatabaseModule,
         RedisModule,
-        ThrottlerModule.forRoot([
-            // `auth` — for any credential-bearing endpoint (sign-in, sign-up, google).
-            { name: 'auth', ttl: 60_000, limit: 5 },
-            // `otp` — for OTP request/verify.
-            { name: 'otp', ttl: 300_000, limit: 5 },
-            // `long` — kept for any consumers still referencing the old name.
-            { name: 'long', ttl: 60_000, limit: 5 },
-        ]),
+        // A single generous default applied to every route (per user/IP). Sensitive auth routes
+        // tighten this via @Throttle({ default: ... }) — see AuthController. Named throttlers all
+        // apply globally, so we keep just one here and override it where stricter limits are needed.
+        ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 120 }]),
         JwtModule.registerAsync({
             inject: [ConfigService],
             useFactory: async (configService: ConfigService) => ({
