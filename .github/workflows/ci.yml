@@ -64,5 +64,6 @@ jobs:
           script: |
             cd ${{ secrets.VPS_PROJECT_PATH }}
             docker compose pull
-            docker compose up -d
+            docker compose up -d --remove-orphans
             docker image prune -f
+            docker system df

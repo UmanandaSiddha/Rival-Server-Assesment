@@ -1,8 +1,9 @@
 services:
   backend:
     # Pulled from the registry — the VPS never builds. CI builds + pushes the image; set
-    # BACKEND_IMAGE in .env to the pushed tag (e.g. ghcr.io/<owner>/<repo>:latest).
-    image: ${BACKEND_IMAGE:-ghcr.io/OWNER/rival-server:latest}
+    # BACKEND_IMAGE in .env to the pushed tag (ghcr.io/<owner>/<repo>:latest). Required —
+    # compose errors with the message below if it's unset rather than pulling a wrong image.
+    image: ${BACKEND_IMAGE:?set BACKEND_IMAGE in .env to your GHCR image, e.g. ghcr.io/owner/repo:latest}
     container_name: rival-backend
     restart: unless-stopped
     # All env (DATABASE_URL, REDIS_HOST/PORT, secrets, RESEND_*, FRONTEND_URL, …) is read from
@@ -14,6 +15,17 @@ services:
       - rival-uploads:/app/uploads
     networks:
       - shared-network
+    # Liveness via the app's own /health (node has global fetch — no curl needed in the slim image).
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://localhost:'+(process.env.PORT||4000)+'/api/v1/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
 
 # Postgres, Redis and nginx-proxy-manager run as shared global containers on the VPS; this app
 # just joins their network and connects via the hostnames in .env (postgres / redis).
