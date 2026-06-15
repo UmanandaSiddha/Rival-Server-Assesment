@@ -5,7 +5,7 @@ const LOCAL_ORIGINS = [
     'http://localhost:5173',
     'http://localhost:5174',
     'https://rival.api.umanandasiddha.in',
-    'https://rival.umanandasiddha.in'
+    'https://rival.umanandasiddha.in',
 ];
 
 /**

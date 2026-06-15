@@ -31,10 +31,30 @@ export class TeamService {
     // --- Teams ---
 
     async create(user: RequestUser, dto: CreateTeamDto) {
+        const name = dto.name.trim();
+
+        // Don't let a user end up with two teams of the same name (case-insensitive),
+        // across teams they own or belong to.
+        const duplicate = await this.databaseService.query(
+            `
+                SELECT 1
+                FROM "Team" t
+                JOIN "TeamMember" tm ON tm."teamId" = t."id"
+                WHERE tm."userId" = $1 AND LOWER(t."name") = LOWER($2)
+                LIMIT 1
+            `,
+            [user.id, name],
+        );
+        if (duplicate.rows[0]) {
+            throw new BadRequestException(
+                'You already have a team with that name',
+            );
+        }
+
         return this.databaseService.withTransaction(async (client) => {
             const teamInsert = await client.query(
                 `INSERT INTO "Team" ("name", "ownerId", "isDefault") VALUES ($1, $2, false) RETURNING *`,
-                [dto.name, user.id],
+                [name, user.id],
             );
             const team = teamInsert.rows[0];
 

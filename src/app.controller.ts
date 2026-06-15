@@ -9,4 +9,10 @@ export class AppController {
     getHello(): string {
         return this.appService.getHello();
     }
+
+    // Liveness probe for Docker/uptime checks (public, no auth). → GET /api/v1/health
+    @Get('health')
+    health() {
+        return { status: 'ok' };
+    }
 }

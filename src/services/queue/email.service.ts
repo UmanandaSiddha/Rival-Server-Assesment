@@ -20,14 +20,17 @@ export class EmailService {
         this.from =
             this.configService.get<string>('EMAIL_FROM') ??
             'onboarding@resend.dev';
-        this.isProd = this.configService.get<string>('NODE_ENV') === 'production';
+        this.isProd =
+            this.configService.get<string>('NODE_ENV') === 'production';
         this.resend = apiKey ? new Resend(apiKey) : null;
     }
 
     async send(to: string, subject: string, html: string): Promise<void> {
         // Only actually send in production with a configured key.
         if (!this.isProd || !this.resend) {
-            this.logger.log(`[email:dev] not sent → to=${to} · subject="${subject}"`);
+            this.logger.log(
+                `[email:dev] not sent → to=${to} · subject="${subject}"`,
+            );
             this.logger.debug(html);
             return;
         }

@@ -25,12 +25,12 @@ export interface UpdateTaskData {
 export type TaskCommand =
     | { type: 'create'; teamId: string; actorId: string; data: CreateTaskData }
     | {
-        type: 'update';
-        taskId: string;
-        teamId: string;
-        actorId: string;
-        data: UpdateTaskData;
-    }
+          type: 'update';
+          taskId: string;
+          teamId: string;
+          actorId: string;
+          data: UpdateTaskData;
+      }
     | { type: 'delete'; taskId: string; teamId: string; actorId: string };
 
 // Error codes the processor throws across the queue boundary; TaskService maps them back to HTTP.
